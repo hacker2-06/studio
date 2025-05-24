@@ -24,6 +24,7 @@ export interface TestCreationData {
   durationMinutes?: number;
   markingCorrect: number;
   markingIncorrect: number;
+  // topic field removed as per user request for manual OMR
 }
 
 // Structure for data stored in localStorage while test is active or being evaluated
@@ -70,3 +71,10 @@ export interface Test {
 export type AIGeneratedTestQuestionsOutput = {
   questions: AIQuestion[];
 };
+
+// User Profile information
+export interface UserProfile {
+  name: string;
+  neetClass?: string; // e.g., "Class 11", "Class 12", "Dropper (1st Year)"
+  targetNeetYear?: number; // e.g., 2025
+}

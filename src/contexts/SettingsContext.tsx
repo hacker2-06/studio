@@ -2,6 +2,7 @@
 "use client";
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import type { UserProfile } from '@/lib/types';
 
 type Theme = "light" | "dark" | "system";
 
@@ -21,18 +22,24 @@ interface Settings {
   theme: Theme;
   scoringRules: ScoringRules;
   timerPreferences: TimerPreferences;
+  userProfile: UserProfile | null;
+  isOnboardingComplete: boolean;
 }
 
 interface SettingsContextType extends Settings {
   setTheme: (theme: Theme) => void;
   setScoringRules: (rules: ScoringRules) => void;
   setTimerPreferences: (prefs: TimerPreferences) => void;
+  setUserProfile: (profile: UserProfile | null) => void;
+  completeOnboarding: () => void;
 }
 
 const defaultSettings: Settings = {
   theme: "system",
   scoringRules: { correct: 4, incorrect: -1 },
   timerPreferences: { defaultMode: 'timer', defaultDurationMinutes: 10 },
+  userProfile: null,
+  isOnboardingComplete: false,
 };
 
 const SETTINGS_STORAGE_KEY = "neetSheetAppSettings";
@@ -43,6 +50,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(defaultSettings.theme);
   const [scoringRules, setScoringRulesState] = useState<ScoringRules>(defaultSettings.scoringRules);
   const [timerPreferences, setTimerPreferencesState] = useState<TimerPreferences>(defaultSettings.timerPreferences);
+  const [userProfile, setUserProfileState] = useState<UserProfile | null>(defaultSettings.userProfile);
+  const [isOnboardingComplete, setIsOnboardingCompleteState] = useState<boolean>(defaultSettings.isOnboardingComplete);
 
   // Effect for initializing all settings from localStorage
   useEffect(() => {
@@ -53,21 +62,32 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         if (storedSettings.theme) setThemeState(storedSettings.theme);
         if (storedSettings.scoringRules) setScoringRulesState(storedSettings.scoringRules);
         if (storedSettings.timerPreferences) setTimerPreferencesState(storedSettings.timerPreferences);
+        if (storedSettings.userProfile) setUserProfileState(storedSettings.userProfile);
+        if (storedSettings.isOnboardingComplete) setIsOnboardingCompleteState(storedSettings.isOnboardingComplete);
       } catch (e) {
         console.error("Failed to parse settings from localStorage", e);
-        // Fallback to default settings if parsing fails
-        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(defaultSettings));
+        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(defaultSettings)); // Reset to defaults
       }
     } else {
-      // If no settings in localStorage, save defaults
       localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(defaultSettings));
     }
   }, []);
 
-  const saveSettings = useCallback((newSettings: Partial<Settings>) => {
-    const currentSettings = { theme, scoringRules, timerPreferences, ...newSettings };
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings));
-  }, [theme, scoringRules, timerPreferences]);
+  const saveSettings = useCallback(() => {
+    const currentSettingsToSave = { 
+      theme, 
+      scoringRules, 
+      timerPreferences,
+      userProfile,
+      isOnboardingComplete 
+    };
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettingsToSave));
+  }, [theme, scoringRules, timerPreferences, userProfile, isOnboardingComplete]);
+
+  // Save anytime a setting changes
+  useEffect(() => {
+    saveSettings();
+  }, [theme, scoringRules, timerPreferences, userProfile, isOnboardingComplete, saveSettings]);
 
 
   // Effect for applying theme to HTML element
@@ -81,20 +101,25 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     root.classList.add(effectiveTheme);
   }, [theme]);
 
-  const setTheme = useCallback((newTheme: Theme) => {
+  const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
-    saveSettings({ theme: newTheme });
-  }, [saveSettings]);
+  };
 
-  const setScoringRules = useCallback((newRules: ScoringRules) => {
+  const setScoringRules = (newRules: ScoringRules) => {
     setScoringRulesState(newRules);
-    saveSettings({ scoringRules: newRules });
-  }, [saveSettings]);
+  };
 
-  const setTimerPreferences = useCallback((newPrefs: TimerPreferences) => {
+  const setTimerPreferences = (newPrefs: TimerPreferences) => {
     setTimerPreferencesState(newPrefs);
-    saveSettings({ timerPreferences: newPrefs });
-  }, [saveSettings]);
+  };
+
+  const setUserProfile = (newProfile: UserProfile | null) => {
+    setUserProfileState(newProfile);
+  };
+
+  const completeOnboarding = () => {
+    setIsOnboardingCompleteState(true);
+  };
 
 
   return (
@@ -104,7 +129,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       scoringRules, 
       setScoringRules,
       timerPreferences,
-      setTimerPreferences
+      setTimerPreferences,
+      userProfile,
+      setUserProfile,
+      isOnboardingComplete,
+      completeOnboarding
     }}>
       {children}
     </SettingsContext.Provider>

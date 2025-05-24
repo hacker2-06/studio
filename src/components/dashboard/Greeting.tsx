@@ -2,28 +2,44 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { Sun, Moon, CloudSun } from 'lucide-react'; // Using CloudSun as a generic afternoon icon
+import { Sun, Moon, CloudSun } from 'lucide-react';
+import { useSettings } from '@/contexts/SettingsContext';
 
 export function Greeting() {
-  const [greeting, setGreeting] = useState<{ text: string; icon: React.ElementType }>({ text: 'Hello!', icon: Sun });
+  const { userProfile } = useSettings();
+  const [greetingText, setGreetingText] = useState('Hello!');
+  const [greetingIcon, setGreetingIcon] = useState<React.ElementType>(Sun);
 
   useEffect(() => {
     const hour = new Date().getHours();
-    if (hour < 12) {
-      setGreeting({ text: 'Good Morning!', icon: Sun });
-    } else if (hour < 18) {
-      setGreeting({ text: 'Good Afternoon!', icon: CloudSun });
-    } else {
-      setGreeting({ text: 'Good Evening!', icon: Moon });
-    }
-  }, []);
+    let timeOfDayText = 'Hello';
+    let Icon = Sun;
 
-  const GreetingIcon = greeting.icon;
+    if (hour < 12) {
+      timeOfDayText = 'Good Morning';
+      Icon = Sun;
+    } else if (hour < 18) {
+      timeOfDayText = 'Good Afternoon';
+      Icon = CloudSun;
+    } else {
+      timeOfDayText = 'Good Evening';
+      Icon = Moon;
+    }
+
+    if (userProfile && userProfile.name) {
+      setGreetingText(`${timeOfDayText}, ${userProfile.name}!`);
+    } else {
+      setGreetingText(`${timeOfDayText}!`);
+    }
+    setGreetingIcon(() => Icon); // Use functional update for icon
+  }, [userProfile]);
+
+  const GreetingIconComponent = greetingIcon;
 
   return (
     <div className="flex items-center space-x-3">
-      <GreetingIcon className="h-8 w-8 text-amber-500" />
-      <h1 className="text-3xl font-bold tracking-tight text-foreground">{greeting.text}</h1>
+      <GreetingIconComponent className="h-8 w-8 text-amber-500" />
+      <h1 className="text-3xl font-bold tracking-tight text-foreground">{greetingText}</h1>
     </div>
   );
 }
