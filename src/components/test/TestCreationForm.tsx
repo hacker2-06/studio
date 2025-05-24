@@ -22,12 +22,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"; // Import Accordion
 import { useToast } from "@/hooks/use-toast";
 import type { TestCreationData, Question, Option, CurrentTestData } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react"; // Added useEffect
+import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { useSettings } from "@/contexts/SettingsContext"; // Import useSettings
+import { useSettings } from "@/contexts/SettingsContext";
 
 const formSchema = z.object({
   name: z.string().min(3, {
@@ -40,7 +46,7 @@ const formSchema = z.object({
     .int({ message: "Number of questions must be a whole number." })
     .positive({ message: "Number of questions must be positive." })
     .min(1, { message: "At least 1 question is required." })
-    .max(100, { message: "Maximum 100 questions allowed." }), // OMR typically 100-200, adjust as needed
+    .max(100, { message: "Maximum 100 questions allowed." }),
   timerMode: z.enum(["timer", "stopwatch", "none"], {
     required_error: "Timer mode is required.",
   }),
@@ -74,14 +80,13 @@ export function TestCreationForm() {
   const { toast } = useToast();
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
-  const { scoringRules, timerPreferences } = useSettings(); // Get settings from context
+  const { scoringRules, timerPreferences } = useSettings();
 
   const form = useForm<TestCreationFormValues>({
     resolver: zodResolver(formSchema),
-    // Initialize with context values or fallback defaults if context is not ready
     defaultValues: {
       name: "",
-      numberOfQuestions: 50, // Default for OMR might be higher
+      numberOfQuestions: 50,
       timerMode: timerPreferences?.defaultMode || "timer",
       durationMinutes: timerPreferences?.defaultDurationMinutes || 30,
       markingCorrect: scoringRules?.correct || 4,
@@ -89,24 +94,20 @@ export function TestCreationForm() {
     },
   });
 
-  // Effect to update form defaults if settings from context change after initial load
   useEffect(() => {
-    // Only reset if the form hasn't been touched by the user yet for these fields
-    // This is a basic check; more sophisticated "isDirty" checks could be used.
     if (scoringRules && !form.formState.dirtyFields.markingCorrect && !form.formState.dirtyFields.markingIncorrect) {
       form.setValue("markingCorrect", scoringRules.correct, { shouldValidate: false });
       form.setValue("markingIncorrect", scoringRules.incorrect, { shouldValidate: false });
     }
     if (timerPreferences && !form.formState.dirtyFields.timerMode && !form.formState.dirtyFields.durationMinutes) {
       form.setValue("timerMode", timerPreferences.defaultMode, { shouldValidate: false });
-      if (timerPreferences.defaultMode === 'timer') {
+      if (timerPreferences.defaultMode === 'timer' && timerPreferences.defaultDurationMinutes) {
         form.setValue("durationMinutes", timerPreferences.defaultDurationMinutes, { shouldValidate: false });
       } else {
         form.setValue("durationMinutes", undefined, { shouldValidate: false });
       }
     }
   }, [scoringRules, timerPreferences, form]);
-
 
   const watchedTimerMode = form.watch("timerMode");
 
@@ -125,7 +126,7 @@ export function TestCreationForm() {
     const generatedQuestions: Question[] = [];
     for (let i = 0; i < values.numberOfQuestions; i++) {
       generatedQuestions.push({
-        id: `q_${i + 1}_${Date.now()}_${Math.random().toString(36).substring(7)}`, // More unique ID
+        id: `q_${i + 1}_${Date.now()}_${Math.random().toString(36).substring(7)}`,
         text: `Question ${i + 1}`, 
         options: OPTIONS_KEYS, 
         isMarkedForReview: false,
@@ -136,7 +137,6 @@ export function TestCreationForm() {
     const fullTestData: CurrentTestData = {
       config: testConfigData,
       questions: generatedQuestions,
-      // elapsedTimeSeconds will be set when test is submitted
     };
 
     try {
@@ -157,7 +157,7 @@ export function TestCreationForm() {
         variant: "destructive",
       });
     } finally {
-      setIsProcessing(false); // Ensure this is always reset
+      setIsProcessing(false);
     }
   }
 
@@ -206,7 +206,7 @@ export function TestCreationForm() {
               <FormLabel>Timer Mode</FormLabel>
               <Select
                 onValueChange={field.onChange}
-                value={field.value} // Ensure value is controlled
+                value={field.value}
                 suppressHydrationWarning 
               >
                 <FormControl>
@@ -247,41 +247,50 @@ export function TestCreationForm() {
           />
         )}
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <FormField
-            control={form.control}
-            name="markingCorrect"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Points for Correct Answer</FormLabel>
-                <FormControl>
-                    <Input type="number" placeholder="e.g., 4" {...field} />
-                </FormControl>
-                <FormDescription>
-                    Points awarded for each correct answer.
-                </FormDescription>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="scoring-rules" className="border-b-0">
+            <AccordionTrigger className="text-sm font-medium text-muted-foreground hover:no-underline hover:text-primary py-2 [&[data-state=open]>svg]:text-primary">
+              Customize Scoring Rules (Optional)
+            </AccordionTrigger>
+            <AccordionContent className="pt-4">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="markingCorrect"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Points for Correct Answer</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="e.g., 4" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Default: {scoringRules.correct}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-            control={form.control}
-            name="markingIncorrect"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Points for Incorrect Answer</FormLabel>
-                <FormControl>
-                    <Input type="number" placeholder="e.g., -1 or 0" {...field} />
-                </FormControl>
-                <FormDescription>
-                    Points deducted (or 0) for each incorrect answer.
-                </FormDescription>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-        </div>
+                <FormField
+                  control={form.control}
+                  name="markingIncorrect"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Points for Incorrect Answer</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="e.g., -1 or 0" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Default: {scoringRules.incorrect}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
         
         <Button type="submit" className="w-full md:w-auto" disabled={isProcessing}>
           {isProcessing ? (
