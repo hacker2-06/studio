@@ -67,7 +67,7 @@ const formSchema = z.object({
 export type TestCreationFormValues = z.infer<typeof formSchema>;
 
 const LOCAL_STORAGE_TEST_DATA_KEY = 'currentSmartsheetTestData';
-const OPTIONS_KEYS: Option[] = ['1', '2', '3', '4']; // Changed from A, B, C, D
+const OPTIONS_KEYS: Option[] = ['1', '2', '3', '4'];
 
 export function TestCreationForm() {
   const { toast } = useToast();
@@ -98,15 +98,17 @@ export function TestCreationForm() {
       durationMinutes: values.timerMode === 'timer' ? values.durationMinutes : undefined,
       markingCorrect: values.markingCorrect,
       markingIncorrect: values.markingIncorrect,
+      // topic: values.topic, // topic removed as per user request for OMR
     };
     
+    // For OMR, we generate generic question structures
     const generatedQuestions: Question[] = [];
     for (let i = 0; i < values.numberOfQuestions; i++) {
       generatedQuestions.push({
         id: `q_${i + 1}_${Date.now()}`, 
-        text: `Question ${i + 1}`, 
-        options: OPTIONS_KEYS,
-        // No AI fields needed for OMR
+        text: `Question ${i + 1}`, // Generic question text
+        options: OPTIONS_KEYS, // Generic options ['1', '2', '3', '4']
+        // aiGeneratedQuestionText, aiGeneratedOptions, etc., are not populated here for OMR
       });
     }
 
@@ -126,7 +128,7 @@ export function TestCreationForm() {
       router.push('/take-test');
 
     } catch (error) {
-      console.error("Error preparing test or navigating:", error);
+      console.error("Error preparing OMR test or navigating:", error);
       toast({
         title: "Error During Test Setup",
         description: `An error occurred: ${error instanceof Error ? error.message : "Please try again."}`,
@@ -179,7 +181,11 @@ export function TestCreationForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Timer Mode</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                suppressHydrationWarning={true} 
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a timer mode" />
