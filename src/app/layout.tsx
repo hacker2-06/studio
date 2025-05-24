@@ -10,14 +10,14 @@ import { ServiceWorkerRegistration } from '@/components/layout/ServiceWorkerRegi
 export const metadata: Metadata = {
   title: 'Smartsheet - Custom Tests & Evaluation',
   description: 'Create, take, and evaluate custom tests with Smartsheet.',
-  // PWA related metadata (can also be in manifest.json, but good for SEO too)
+  // PWA related metadata
   applicationName: 'Smartsheet',
   appleWebAppCapable: 'yes',
   appleWebAppStatusBarStyle: 'default',
   appleWebAppTitle: 'Smartsheet',
-  formatDetection: { telephone: false }, // Corrected format
+  formatDetection: { telephone: false }, // Ensure this is an object
   mobileWebAppCapable: 'yes',
-  // themeColor: '#1A73E8', // Duplicates manifest, but can be here
+  // themeColor: '#1A73E8', // Can be in manifest or here
 };
 
 export default function RootLayout({
