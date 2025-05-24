@@ -8,15 +8,15 @@ import type { ReactNode } from 'react';
 import { ServiceWorkerRegistration } from '@/components/layout/ServiceWorkerRegistration';
 
 export const metadata: Metadata = {
-  title: 'Smartsheet - Custom Tests & Evaluation',
-  description: 'Create, take, and evaluate custom tests with Smartsheet.',
+  title: 'NEET SHEET - Custom OMR Tests & Evaluation for NEET Aspirants',
+  description: 'Create, take, and evaluate custom OMR tests specifically designed for NEET (UG) aspirants. Track your progress and improve your scores.',
   // Explicitly set icons to null to avoid favicon.ico.mjs build issues for now
-  // The PWA icons will be primarily driven by manifest.json
-  icons: null, 
-  applicationName: 'Smartsheet',
+  // The PWA icons will be primarily driven by manifest.json and direct head links
+  icons: null,
+  applicationName: 'NEET SHEET',
   appleWebAppCapable: 'yes',
   appleWebAppStatusBarStyle: 'default',
-  appleWebAppTitle: 'Smartsheet',
+  appleWebAppTitle: 'NEET SHEET',
   mobileWebAppCapable: 'yes',
 };
 
@@ -30,7 +30,7 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#1A73E8" />
-        {/* Update apple-touch-icon path; ensure you create this PNG from your SVG */}
+        {/* Ensure you create this PNG (e.g., 180x180) from your logo.png and place it in public/icons/ */}
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180x180.png" />
       </head>
       <body className={`${inter.variable} ${poppins.variable} antialiased`}>

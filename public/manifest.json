@@ -1,23 +1,26 @@
+
 {
-  "name": "Smartsheet - Custom Tests & Evaluation",
-  "short_name": "Smartsheet",
-  "description": "Create, take, and evaluate custom tests with Smartsheet.",
+  "name": "NEET SHEET: OMR Practice",
+  "short_name": "NEET SHEET",
+  "description": "Your personal OMR sheet tool for NEET (UG) preparation. Create, take, and evaluate tests to boost your exam readiness.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F6FA",
+  "theme_color": "#1A73E8",
   "icons": [
     {
-      "src": "/logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-192x192.png",
+      "src": "/icons/android-chrome-192x192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     },
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "/icons/android-chrome-512x512.png",
       "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "any",
       "type": "image/png",
       "purpose": "any"
     },
@@ -26,17 +29,6 @@
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
-    },
-    {
-      "src": "/icons/maskable_icon_x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
     }
-  ],
-  "theme_color": "#1A73E8",
-  "background_color": "#F5F6FA",
-  "start_url": "/",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }

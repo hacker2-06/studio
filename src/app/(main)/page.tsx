@@ -1,5 +1,5 @@
 
-"use client"; // Keep this if it was there, or add if needed for dynamic imports with client-side focus
+"use client"; 
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,15 +46,15 @@ export default function DashboardPage() {
       
       <Card className="shadow-lg border-primary border-2">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold tracking-tight text-primary">Ready for a New Challenge?</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight text-primary">Ready for a New NEET Challenge?</CardTitle>
           <CardDescription>
-            Create a new OMR sheet, start your test, and track your progress.
+            Create a new OMR sheet, start your practice test, and ace your NEET preparation.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex justify-center">
           <Link href="/create-test" passHref legacyBehavior>
             <Button size="lg" className="w-full md:w-auto bg-primary hover:bg-primary/90 text-primary-foreground">
-              <FilePlus2 className="mr-2 h-5 w-5" /> Create New Test
+              <FilePlus2 className="mr-2 h-5 w-5" /> Create New OMR Sheet
             </Button>
           </Link>
         </CardContent>
