@@ -7,11 +7,17 @@ export interface Question {
   userAnswer?: Option; // The answer selected by the user
   correctAnswer?: Option; // The correct answer (for evaluation)
   isCorrect?: boolean; // Determined during evaluation
+  // Fields that might come from AI generation
+  aiGeneratedQuestionText?: string;
+  aiGeneratedOptions?: { A?: string; B?: string; C?: string; D?: string };
+  aiGeneratedCorrectAnswerKey?: Option;
+  aiGeneratedExplanation?: string;
 }
 
 export interface Test {
   id: string;
   name: string;
+  topic: string; // Added topic
   numberOfQuestions: number;
   questions: Question[];
   timer: {
@@ -37,9 +43,27 @@ export interface Test {
 // Example: Test settings from creation form
 export interface TestCreationData {
   name: string;
+  topic: string; // Added topic
   numberOfQuestions: number;
   timerMode: 'timer' | 'stopwatch' | 'none';
   durationMinutes?: number; // Input in minutes for timer
   markingCorrect: number;
   markingIncorrect: number;
+}
+
+// For AI Generated Questions
+export interface AIQuestion {
+  questionText: string;
+  options: {
+    A: string;
+    B: string;
+    C: string;
+    D: string;
+  };
+  correctAnswer: Option;
+  explanation?: string;
+}
+
+export interface AIGeneratedTestQuestions {
+  questions: AIQuestion[];
 }

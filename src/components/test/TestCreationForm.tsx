@@ -1,7 +1,7 @@
 
 "use client";
 
-import * as z from "zod"; // Changed from "import type * as z from "zod";"
+import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -23,8 +23,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import type { TestCreationData } from "@/lib/types"; // Ensure this type is correctly defined
-import { useRouter } from "next/navigation"; // For potential navigation after creation
+import type { TestCreationData, AIQuestion } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { generateTestQuestions, type GenerateTestQuestionsInput } from "@/ai/flows/generate-test-questions-flow";
+import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(3, {
@@ -32,16 +35,21 @@ const formSchema = z.object({
   }).max(100, {
     message: "Test name must not exceed 100 characters.",
   }),
-  numberOfQuestions: z.coerce // Use coerce to convert string input from number field to number
+  topic: z.string().min(3, {
+    message: "Test topic must be at least 3 characters.",
+  }).max(100, {
+    message: "Test topic must not exceed 100 characters.",
+  }),
+  numberOfQuestions: z.coerce
     .number({ invalid_type_error: "Number of questions must be a number." })
     .int({ message: "Number of questions must be a whole number." })
     .positive({ message: "Number of questions must be positive." })
     .min(1, { message: "At least 1 question is required." })
-    .max(100, { message: "Maximum 100 questions allowed." }),
+    .max(20, { message: "Maximum 20 questions allowed for now." }), // Capped for faster generation initially
   timerMode: z.enum(["timer", "stopwatch", "none"], {
     required_error: "Timer mode is required.",
   }),
-  durationMinutes: z.coerce // Use coerce for optional number
+  durationMinutes: z.coerce
     .number()
     .int()
     .positive()
@@ -59,7 +67,7 @@ const formSchema = z.object({
   return true;
 }, {
   message: "Duration is required and must be positive when timer mode is 'timer'.",
-  path: ["durationMinutes"], // Path of the error
+  path: ["durationMinutes"],
 });
 
 export type TestCreationFormValues = z.infer<typeof formSchema>;
@@ -67,12 +75,15 @@ export type TestCreationFormValues = z.infer<typeof formSchema>;
 export function TestCreationForm() {
   const { toast } = useToast();
   const router = useRouter();
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const [generatedQuestions, setGeneratedQuestions] = useState<AIQuestion[] | null>(null);
 
   const form = useForm<TestCreationFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      numberOfQuestions: 10,
+      topic: "",
+      numberOfQuestions: 5,
       timerMode: "timer",
       durationMinutes: 10,
       markingCorrect: 4,
@@ -82,12 +93,12 @@ export function TestCreationForm() {
 
   const timerMode = form.watch("timerMode");
 
-  function onSubmit(values: TestCreationFormValues) {
-    // TODO: Implement actual test creation logic (e.g., API call, state update)
-    console.log("Form submitted with values:", values);
+  async function onSubmit(values: TestCreationFormValues) {
+    setGeneratedQuestions(null); // Clear previous questions
 
     const testData: TestCreationData = {
       name: values.name,
+      topic: values.topic,
       numberOfQuestions: values.numberOfQuestions,
       timerMode: values.timerMode as 'timer' | 'stopwatch' | 'none',
       durationMinutes: values.timerMode === 'timer' ? values.durationMinutes : undefined,
@@ -95,7 +106,6 @@ export function TestCreationForm() {
       markingIncorrect: values.markingIncorrect,
     };
     
-    // For now, we'll just show a toast
     toast({
       title: "Test Configured",
       description: (
@@ -104,9 +114,32 @@ export function TestCreationForm() {
         </pre>
       ),
     });
-    // Optionally, navigate to another page or reset the form
-    // router.push('/some-page-after-creation');
-    // form.reset(); // if you want to reset the form after submission
+
+    setIsGeneratingQuestions(true);
+    try {
+      const aiInput: GenerateTestQuestionsInput = {
+        topic: values.topic,
+        numberOfQuestions: values.numberOfQuestions,
+      };
+      const result = await generateTestQuestions(aiInput);
+      setGeneratedQuestions(result.questions);
+      toast({
+        title: "AI Questions Generated!",
+        description: `Successfully generated ${result.questions.length} questions for the topic: ${values.topic}. Check console for details.`,
+        variant: "default",
+      });
+      console.log("Generated Questions:", result.questions);
+      // TODO: Store or display these questions appropriately
+    } catch (error) {
+      console.error("Error generating questions:", error);
+      toast({
+        title: "Error Generating Questions",
+        description: "Failed to generate questions using AI. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingQuestions(false);
+    }
   }
 
   return (
@@ -131,6 +164,23 @@ export function TestCreationForm() {
 
         <FormField
           control={form.control}
+          name="topic"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Test Topic / Subject</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., High School Physics, World Capitals" {...field} />
+              </FormControl>
+              <FormDescription>
+                What subject or topic will this test cover?
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="numberOfQuestions"
           render={({ field }) => (
             <FormItem>
@@ -139,7 +189,7 @@ export function TestCreationForm() {
                 <Input type="number" placeholder="e.g., 10" {...field} />
               </FormControl>
               <FormDescription>
-                How many questions will this test have?
+                How many questions will this test have? (Max 20 for now)
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -227,8 +277,18 @@ export function TestCreationForm() {
             />
         </div>
         
-        <Button type="submit" className="w-full md:w-auto">Create Test Configuration</Button>
+        <Button type="submit" className="w-full md:w-auto" disabled={isGeneratingQuestions}>
+          {isGeneratingQuestions ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating Questions...
+            </>
+          ) : (
+            "Configure & Generate Questions"
+          )}
+        </Button>
       </form>
+      {/* TODO: Display generated questions here if needed */}
     </Form>
   );
 }
