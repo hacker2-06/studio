@@ -10,7 +10,7 @@
     --card-foreground: 220 5% 13%; /* #202124 */
     --popover: 0 0% 100%; /* #FFFFFF */
     --popover-foreground: 220 5% 13%; /* #202124 */
-    --primary: 214 82% 50%; /* #1A73E8 */
+    --primary: 214 82% 50%; /* #1A73E8 - Base for gradient */
     --primary-foreground: 0 0% 100%; /* White */
     --secondary: 228 10% 90%; /* Light Gray */
     --secondary-foreground: 220 5% 13%; /* #202124 */
@@ -27,7 +27,7 @@
     --success: 141 56% 43%; /* #34A853 Green */
     --success-foreground: 0 0% 100%; /* White */
 
-    --radius: 0.75rem; /* 12px */
+    --radius: 1rem; /* Increased for Material You feel, was 0.75rem */
 
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -35,7 +35,7 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
 
-    /* Sidebar variables aligned with main theme */
+    /* Sidebar variables aligned with main theme (kept for completeness, though sidebar is not primary nav) */
     --sidebar-background: var(--card);
     --sidebar-foreground: var(--card-foreground);
     --sidebar-primary: var(--primary);
@@ -44,6 +44,12 @@
     --sidebar-accent-foreground: var(--accent-foreground);
     --sidebar-border: var(--border);
     --sidebar-ring: var(--ring);
+
+    /* Gradient colors for animations */
+    --gradient-color-1: hsl(214 82% 60%);
+    --gradient-color-2: hsl(230 80% 65%);
+    --gradient-color-3: hsl(200 85% 55%);
+    --gradient-color-4: hsl(220 75% 70%);
   }
 
   .dark {
@@ -53,7 +59,7 @@
     --card-foreground: 220 17% 92%; /* #E8EAED */
     --popover: 225 4% 20%; /* #303134 */
     --popover-foreground: 220 17% 92%; /* #E8EAED */
-    --primary: 216 90% 76%; /* #8AB4F8 Muted Blue */
+    --primary: 216 90% 76%; /* #8AB4F8 Muted Blue - Base for gradient */
     --primary-foreground: 220 5% 13%; /* Dark text on Muted Blue */
     --secondary: 225 4% 25%; /* Dark Gray */
     --secondary-foreground: 220 17% 92%; /* #E8EAED */
@@ -85,6 +91,12 @@
     --sidebar-accent-foreground: var(--accent-foreground);
     --sidebar-border: var(--border);
     --sidebar-ring: var(--ring);
+
+    /* Gradient colors for animations - Dark mode */
+    --gradient-color-1: hsl(216 90% 60%);
+    --gradient-color-2: hsl(230 80% 55%);
+    --gradient-color-3: hsl(200 85% 45%);
+    --gradient-color-4: hsl(220 75% 60%);
   }
 }
 
@@ -94,8 +106,56 @@
   }
   body {
     @apply bg-background text-foreground font-sans;
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--secondary)) 50%, hsl(var(--background)) 100%);
+    background-size: 400% 400%;
+    animation: gradientBG 20s ease infinite;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
   }
+}
+
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.btn-animated-gradient {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  background: linear-gradient(120deg, var(--gradient-color-1), var(--gradient-color-2), var(--gradient-color-3), var(--gradient-color-4));
+  background-size: 300% 300%;
+  animation: animatedButtonGradient 8s ease-in-out infinite;
+  color: hsl(var(--primary-foreground)); /* Ensure text color is from primary-foreground */
+  border: none; /* Remove border for gradient buttons */
+}
+
+.btn-animated-gradient:hover {
+   /* Keep animation, slightly change brightness or scale for hover */
+  animation: animatedButtonGradient 6s ease-in-out infinite; /* Speed up on hover */
+  filter: brightness(1.1);
+}
+
+@keyframes animatedButtonGradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Ensure ShadCN button focus states are preserved for accessibility */
+.btn-animated-gradient:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Style for the active tab highlight in BottomTabBar */
+.active-tab-highlight {
+  position: absolute;
+  bottom: 4px; /* Adjust as needed */
+  height: 4px;
+  background-color: hsl(var(--primary));
+  border-radius: 2px;
+  z-index: -1; /* Behind the icon/text */
 }
