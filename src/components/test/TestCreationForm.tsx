@@ -32,7 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { TestCreationData, Question, Option, CurrentTestData } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, ClipboardSignature, ListOrdered, Clock, Hourglass, Gavel, PlusCircle, MinusCircle, ArrowRightCircle } from "lucide-react"; // Added new icons
 import { useSettings } from "@/contexts/SettingsContext";
 
 const formSchema = z.object({
@@ -169,7 +169,10 @@ export function TestCreationForm() {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Test Name</FormLabel>
+              <FormLabel className="flex items-center">
+                <ClipboardSignature className="mr-2 h-5 w-5 text-primary" />
+                Test Name
+              </FormLabel>
               <FormControl>
                 <Input placeholder="e.g., Physics Mock Test 1" {...field} />
               </FormControl>
@@ -186,7 +189,10 @@ export function TestCreationForm() {
           name="numberOfQuestions"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Number of Questions</FormLabel>
+              <FormLabel className="flex items-center">
+                <ListOrdered className="mr-2 h-5 w-5 text-primary" />
+                Number of Questions
+              </FormLabel>
               <FormControl>
                 <Input type="number" placeholder="e.g., 100" {...field} />
               </FormControl>
@@ -203,7 +209,10 @@ export function TestCreationForm() {
           name="timerMode"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Timer Mode</FormLabel>
+              <FormLabel className="flex items-center">
+                <Clock className="mr-2 h-5 w-5 text-primary" />
+                Timer Mode
+              </FormLabel>
               <Select
                 onValueChange={field.onChange}
                 value={field.value}
@@ -240,7 +249,10 @@ export function TestCreationForm() {
             name="durationMinutes"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Duration (minutes)</FormLabel>
+                <FormLabel className="flex items-center">
+                  <Hourglass className="mr-2 h-5 w-5 text-primary" />
+                  Duration (minutes)
+                </FormLabel>
                 <FormControl>
                   <Input type="number" placeholder="e.g., 180" {...field} value={field.value ?? ''} />
                 </FormControl>
@@ -256,7 +268,10 @@ export function TestCreationForm() {
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="scoring-rules" className="border-b-0">
             <AccordionTrigger className="text-sm font-medium text-muted-foreground hover:no-underline hover:text-primary py-2 [&[data-state=open]>svg]:text-primary">
-              Customize Scoring Rules (Optional)
+              <div className="flex items-center">
+                <Gavel className="mr-2 h-5 w-5" />
+                Customize Scoring Rules (Optional)
+              </div>
             </AccordionTrigger>
             <AccordionContent className="pt-4">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -265,7 +280,10 @@ export function TestCreationForm() {
                   name="markingCorrect"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Points for Correct Answer</FormLabel>
+                      <FormLabel className="flex items-center">
+                        <PlusCircle className="mr-2 h-5 w-5 text-green-600" />
+                        Points for Correct Answer
+                      </FormLabel>
                       <FormControl>
                         <Input type="number" placeholder="e.g., 4" {...field} />
                       </FormControl>
@@ -284,7 +302,10 @@ export function TestCreationForm() {
                   name="markingIncorrect"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Points for Incorrect Answer</FormLabel>
+                      <FormLabel className="flex items-center">
+                        <MinusCircle className="mr-2 h-5 w-5 text-red-600" />
+                        Points for Incorrect Answer
+                      </FormLabel>
                       <FormControl>
                         <Input type="number" placeholder="e.g., -1 or 0" {...field} />
                       </FormControl>
@@ -309,7 +330,10 @@ export function TestCreationForm() {
               Preparing OMR Sheet...
             </>
           ) : (
-            "Create OMR Sheet & Start Test"
+            <>
+              <ArrowRightCircle className="mr-2 h-5 w-5" />
+              Create OMR Sheet & Start Test
+            </>
           )}
         </Button>
       </form>
