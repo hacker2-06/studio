@@ -32,13 +32,19 @@ interface SettingsContextType extends Settings {
   setTimerPreferences: (prefs: TimerPreferences) => void;
   setUserProfile: (profile: UserProfile | null) => void;
   completeOnboarding: () => void;
+  recordTestCompletion: () => void;
 }
 
 const defaultSettings: Settings = {
   theme: "system",
   scoringRules: { correct: 4, incorrect: -1 },
   timerPreferences: { defaultMode: 'timer', defaultDurationMinutes: 10 },
-  userProfile: null,
+  userProfile: {
+    name: "",
+    dailyStreak: 0,
+    lastTestCompletedDate: undefined,
+    weeklyTestGoal: 3, // Default weekly goal
+  },
   isOnboardingComplete: false,
 };
 
@@ -62,11 +68,28 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         if (storedSettings.theme) setThemeState(storedSettings.theme);
         if (storedSettings.scoringRules) setScoringRulesState(storedSettings.scoringRules);
         if (storedSettings.timerPreferences) setTimerPreferencesState(storedSettings.timerPreferences);
-        if (storedSettings.userProfile) setUserProfileState(storedSettings.userProfile);
+        
+        // Initialize userProfile with defaults if parts are missing from localStorage
+        const loadedProfile = storedSettings.userProfile || {};
+        setUserProfileState({
+            name: loadedProfile.name || defaultSettings.userProfile?.name || "",
+            neetClass: loadedProfile.neetClass || defaultSettings.userProfile?.neetClass,
+            targetNeetYear: loadedProfile.targetNeetYear || defaultSettings.userProfile?.targetNeetYear,
+            dailyStreak: loadedProfile.dailyStreak || defaultSettings.userProfile?.dailyStreak || 0,
+            lastTestCompletedDate: loadedProfile.lastTestCompletedDate || defaultSettings.userProfile?.lastTestCompletedDate,
+            weeklyTestGoal: loadedProfile.weeklyTestGoal === undefined ? defaultSettings.userProfile?.weeklyTestGoal : loadedProfile.weeklyTestGoal,
+        });
+
         if (storedSettings.isOnboardingComplete) setIsOnboardingCompleteState(storedSettings.isOnboardingComplete);
       } catch (e) {
         console.error("Failed to parse settings from localStorage", e);
-        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(defaultSettings)); // Reset to defaults
+        // If parsing fails, reset to default to avoid broken state
+        setThemeState(defaultSettings.theme);
+        setScoringRulesState(defaultSettings.scoringRules);
+        setTimerPreferencesState(defaultSettings.timerPreferences);
+        setUserProfileState(defaultSettings.userProfile);
+        setIsOnboardingCompleteState(defaultSettings.isOnboardingComplete);
+        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(defaultSettings));
       }
     } else {
       localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(defaultSettings));
@@ -84,13 +107,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettingsToSave));
   }, [theme, scoringRules, timerPreferences, userProfile, isOnboardingComplete]);
 
-  // Save anytime a setting changes
   useEffect(() => {
     saveSettings();
   }, [theme, scoringRules, timerPreferences, userProfile, isOnboardingComplete, saveSettings]);
 
 
-  // Effect for applying theme to HTML element
   useEffect(() => {
     const root = window.document.documentElement;
     const effectiveTheme = theme === "system"
@@ -121,6 +142,41 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setIsOnboardingCompleteState(true);
   };
 
+  const recordTestCompletion = useCallback(() => {
+    setUserProfileState(prevProfile => {
+      if (!prevProfile) return null;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Normalize to start of day
+      const lastCompletionDateString = prevProfile.lastTestCompletedDate;
+      
+      let newStreak = prevProfile.dailyStreak || 0;
+
+      if (lastCompletionDateString) {
+        const lastCompletion = new Date(lastCompletionDateString);
+        lastCompletion.setHours(0, 0, 0, 0); // Normalize
+
+        const diffTime = today.getTime() - lastCompletion.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 1) {
+          newStreak++;
+        } else if (diffDays > 1) {
+          newStreak = 1; // Reset streak
+        }
+        // If diffDays is 0 (same day), streak doesn't change
+      } else {
+        newStreak = 1; // First test completion
+      }
+      
+      return {
+        ...prevProfile,
+        dailyStreak: newStreak,
+        lastTestCompletedDate: today.toISOString().split('T')[0], // Store as YYYY-MM-DD
+      };
+    });
+  }, []);
+
 
   return (
     <SettingsContext.Provider value={{ 
@@ -133,7 +189,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       userProfile,
       setUserProfile,
       isOnboardingComplete,
-      completeOnboarding
+      completeOnboarding,
+      recordTestCompletion
     }}>
       {children}
     </SettingsContext.Provider>

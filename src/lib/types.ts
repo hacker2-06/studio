@@ -77,4 +77,7 @@ export interface UserProfile {
   name: string;
   neetClass?: string; // e.g., "Class 11", "Class 12", "Dropper (1st Year)"
   targetNeetYear?: number; // e.g., 2025
+  dailyStreak: number;
+  lastTestCompletedDate?: string; // Store as YYYY-MM-DD
+  weeklyTestGoal?: number; // Number of tests per week
 }

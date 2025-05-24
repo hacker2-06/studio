@@ -26,6 +26,9 @@ export function OnboardingProfileSetup({ onSave, initialProfile }: OnboardingPro
   const [targetNeetYear, setTargetNeetYear] = useState<string>(
     initialProfile?.targetNeetYear?.toString() || targetYears[1].toString() // Default to next year
   );
+  const [weeklyTestGoal, setWeeklyTestGoal] = useState<string>(
+    initialProfile?.weeklyTestGoal?.toString() || "3" // Default to 3 tests
+  );
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -38,10 +41,23 @@ export function OnboardingProfileSetup({ onSave, initialProfile }: OnboardingPro
       });
       return;
     }
+    const goal = parseInt(weeklyTestGoal, 10);
+    if (isNaN(goal) || goal < 0) {
+        toast({
+            title: "Invalid Goal",
+            description: "Weekly test goal must be a non-negative number.",
+            variant: "destructive",
+        });
+        return;
+    }
+
     onSave({
       name: name.trim(),
-      neetClass: neetClass || undefined, // Store as undefined if empty
+      neetClass: neetClass || undefined, 
       targetNeetYear: parseInt(targetNeetYear, 10),
+      dailyStreak: initialProfile?.dailyStreak || 0, // Retain if editing, else 0
+      lastTestCompletedDate: initialProfile?.lastTestCompletedDate, // Retain if editing
+      weeklyTestGoal: goal,
     });
   };
 
@@ -99,6 +115,21 @@ export function OnboardingProfileSetup({ onSave, initialProfile }: OnboardingPro
                 </SelectContent>
               </Select>
             </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="weeklyTestGoal" className="text-base">Weekly Test Goal (Optional)</Label>
+              <Input
+                id="weeklyTestGoal"
+                type="number"
+                value={weeklyTestGoal}
+                onChange={(e) => setWeeklyTestGoal(e.target.value)}
+                placeholder="e.g., 3"
+                min="0"
+                className="text-base"
+              />
+               <p className="text-xs text-muted-foreground">How many tests do you aim to complete each week?</p>
+            </div>
+
 
             <Button type="submit" size="lg" className="w-full">
               <Save className="mr-2 h-5 w-5" />

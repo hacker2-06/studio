@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, AlertCircle, CheckCircle2, XCircle, HelpCircle, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils"; 
+import { useSettings } from "@/contexts/SettingsContext"; // Import useSettings
 
 const LOCAL_STORAGE_EVALUATION_KEY = 'testForEvaluation';
 const LOCAL_STORAGE_HISTORY_PREFIX = 'smartsheet_test_history_';
@@ -25,6 +26,7 @@ export default function SelfEvaluatePage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
+  const { recordTestCompletion } = useSettings(); // Get recordTestCompletion
 
   useEffect(() => {
     try {
@@ -32,7 +34,7 @@ export default function SelfEvaluatePage() {
       if (storedData) {
         const parsedData: CurrentTestData = JSON.parse(storedData);
         if (parsedData && parsedData.config && parsedData.questions) {
-          setTestData(parsedData); // This now includes elapsedTimeSeconds if available
+          setTestData(parsedData); 
           setEvaluatedQuestions(parsedData.questions.map(q => ({ ...q, isCorrect: undefined })));
         } else {
           setError("Evaluation data is incomplete. Please try taking the test again.");
@@ -101,14 +103,17 @@ export default function SelfEvaluatePage() {
         correctCount,
         incorrectCount,
         unattemptedCount,
-        percentage: accuracyPercentage, // This field now stores accuracy (correct/attempted)
+        percentage: accuracyPercentage, 
       },
-      elapsedTimeSeconds: testData.elapsedTimeSeconds, // Pass along elapsedTimeSeconds
+      elapsedTimeSeconds: testData.elapsedTimeSeconds, 
     };
 
     try {
       localStorage.setItem(`${LOCAL_STORAGE_HISTORY_PREFIX}${testId}`, JSON.stringify(finalEvaluatedTest));
       localStorage.removeItem(LOCAL_STORAGE_EVALUATION_KEY);
+      
+      recordTestCompletion(); // Call to update streak
+
       toast({
         title: "Evaluation Complete!",
         description: `Your score is ${score}. Results saved to history.`,

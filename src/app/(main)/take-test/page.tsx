@@ -4,7 +4,7 @@
 import type { CurrentTestData, Option, Question } from "@/lib/types";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button"; // Imported buttonVariants
+import { Button, buttonVariants } from "@/components/ui/button"; 
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
@@ -28,7 +28,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, AlertCircle, TimerIcon, ArrowLeft, Flag, Bookmark, Info, ListChecks, ClipboardEdit, MousePointerClick, SendHorizonal, LogOut } from "lucide-react"; 
+import { Loader2, AlertCircle, TimerIcon, ArrowLeft, Flag, Bookmark, Info, ListChecks, ClipboardEdit, MousePointerClick, SendHorizonal, LogOut, Eye } from "lucide-react"; 
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -47,7 +47,9 @@ export default function TakeTestPage() {
   const { toast } = useToast();
   const startTimeRef = useRef<number | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const isTestActiveRef = useRef(false); // To track if test is ongoing for beforeunload
+  const isTestActiveRef = useRef(false); 
+
+  const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     try {
@@ -61,6 +63,7 @@ export default function TakeTestPage() {
             isMarkedForLater: q.isMarkedForLater ?? false,
           }));
           setActiveTest({ ...parsedData, questions: questionsWithFlags });
+          questionRefs.current = questionsWithFlags.map(() => null); // Initialize refs array
           isTestActiveRef.current = true;
         } else {
           setError("Test data is incomplete. Please create the test again.");
@@ -79,9 +82,8 @@ export default function TakeTestPage() {
     }
   }, []);
 
-  // Timer/Stopwatch effect
   useEffect(() => {
-    if (!activeTest || showTutorialModal) return;
+    if (!activeTest || showTutorialModal || !isTestActiveRef.current) return;
 
     if (!startTimeRef.current) {
       startTimeRef.current = Date.now();
@@ -119,38 +121,29 @@ export default function TakeTestPage() {
     } else {
       setTimeDisplay("No Timer");
     }
-     // Only re-run if these specific config props change, or tutorial visibility changes
-  }, [activeTest?.config.timerMode, activeTest?.config.durationMinutes, showTutorialModal, toast]);
+  }, [activeTest?.config.timerMode, activeTest?.config.durationMinutes, showTutorialModal, toast, isTestActiveRef.current]);
 
 
-  // beforeunload warning effect
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (isTestActiveRef.current) {
         event.preventDefault();
-        // Standard way to show browser's generic confirmation message
         event.returnValue = "Are you sure you want to leave? Your test progress will be lost.";
         return event.returnValue;
       }
     };
-
     window.addEventListener('beforeunload', handleBeforeUnload);
-
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, []); // Empty dependency array, runs once on mount and cleans up on unmount
+  }, []); 
 
 
-  // Cleanup timer on component unmount or when test is no longer active
   useEffect(() => {
     return () => {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
       }
-      // Also mark test as inactive when component unmounts, for beforeunload
-      // This is tricky if navigating away, as state might not be fully processed.
-      // isTestActiveRef.current should be set to false mainly upon explicit submission/cancellation.
     };
   }, []);
   
@@ -189,7 +182,7 @@ export default function TakeTestPage() {
   const handleSubmitTest = () => {
     if (!activeTest) return;
     setIsSubmitting(true);
-    isTestActiveRef.current = false; // Test is no longer active
+    isTestActiveRef.current = false; 
     
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
@@ -216,12 +209,12 @@ export default function TakeTestPage() {
         variant: "destructive",
       });
       setIsSubmitting(false);
-      isTestActiveRef.current = true; // Re-activate if submission failed
+      isTestActiveRef.current = true; 
     }
   };
 
   const handleCancelTestConfirmed = () => {
-    isTestActiveRef.current = false; // Test is no longer active
+    isTestActiveRef.current = false; 
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
     }
@@ -230,8 +223,22 @@ export default function TakeTestPage() {
       title: "Test Cancelled",
       description: "Your current test progress has been cleared.",
     });
-    router.push('/'); // Navigate to home or create-test page
+    router.push('/'); 
     setShowCancelConfirmDialog(false);
+  };
+
+  const scrollToMarkedQuestion = (flagType: 'isMarkedForReview' | 'isMarkedForLater') => {
+    if (!activeTest) return;
+    const firstMarkedIndex = activeTest.questions.findIndex(q => q[flagType]);
+    if (firstMarkedIndex !== -1 && questionRefs.current[firstMarkedIndex]) {
+      questionRefs.current[firstMarkedIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      toast({
+        title: "No Questions Marked",
+        description: `No questions are currently marked for ${flagType === 'isMarkedForReview' ? 'review' : 'later'}.`,
+        variant: "default"
+      });
+    }
   };
 
   if (isLoading) {
@@ -268,13 +275,18 @@ export default function TakeTestPage() {
     return activeTest.questions.find(q => q.id === questionId);
   };
 
+  const markedForReviewCount = activeTest.questions.filter(q => q.isMarkedForReview).length;
+  const markedForLaterCount = activeTest.questions.filter(q => q.isMarkedForLater && !q.isMarkedForReview).length; // Count only if not also for review for distinct count display
+
   return (
     <>
       <Dialog open={showTutorialModal} onOpenChange={(isOpen) => {
           if (!isOpen) {
               setShowTutorialModal(false);
+              // Start timer logic handled by useEffect based on isTestActiveRef and showTutorialModal
+              isTestActiveRef.current = true; 
               if (!startTimeRef.current) {
-                  startTimeRef.current = Date.now();
+                 startTimeRef.current = Date.now();
               }
           }
       }}>
@@ -302,6 +314,10 @@ export default function TakeTestPage() {
                 <span>Use this icon to <span className="font-semibold text-foreground">Mark for Later</span> for any question you want to revisit.</span>
               </li>
               <li className="flex items-start">
+                <Eye className="inline-block h-5 w-5 mr-3 mt-0.5 text-purple-500 shrink-0" />
+                <span>The bar above questions shows counts for <span className="font-semibold text-foreground">Review</span> &amp; <span className="font-semibold text-foreground">Later</span>. Click them to navigate.</span>
+              </li>
+              <li className="flex items-start">
                 <TimerIcon className="inline-block h-5 w-5 mr-3 mt-0.5 text-primary shrink-0" />
                 <span>Your test might be timed. Keep an eye on the <span className="font-semibold text-foreground">{activeTest.config.timerMode === 'timer' ? 'timer (countdown)' : activeTest.config.timerMode === 'stopwatch' ? 'stopwatch (count up)' : 'timer display'}</span> at the top.</span>
               </li>
@@ -311,6 +327,7 @@ export default function TakeTestPage() {
           <DialogFooter>
             <Button onClick={() => {
                 setShowTutorialModal(false);
+                isTestActiveRef.current = true;
                 if (!startTimeRef.current) { 
                   startTimeRef.current = Date.now();
                 }
@@ -339,8 +356,8 @@ export default function TakeTestPage() {
       {!showTutorialModal && (
         <div className="container mx-auto py-8">
           <Card className="shadow-xl w-full max-w-3xl mx-auto">
-            <CardHeader className="border-b">
-              <div className="flex justify-between items-start">
+            <CardHeader className="border-b pb-4">
+              <div className="flex justify-between items-start mb-3">
                 <div>
                   <CardTitle className="text-2xl font-bold tracking-tight">{activeTest.config.name}</CardTitle>
                   <CardDescription className="text-md mt-1 flex items-center text-muted-foreground">
@@ -359,17 +376,35 @@ export default function TakeTestPage() {
                     </p>
                 </div>
               </div>
+               {/* Summary Bar for Marked Questions */}
+              {(markedForReviewCount > 0 || markedForLaterCount > 0) && (
+                <div className="flex items-center space-x-4 mt-2 p-2 bg-muted/50 rounded-md border">
+                  {markedForReviewCount > 0 && (
+                    <Button variant="ghost" size="sm" className="text-orange-600 hover:text-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/50" onClick={() => scrollToMarkedQuestion('isMarkedForReview')}>
+                      <Flag className="mr-2 h-4 w-4" /> Review: {markedForReviewCount}
+                    </Button>
+                  )}
+                  {markedForLaterCount > 0 && (
+                    <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/50" onClick={() => scrollToMarkedQuestion('isMarkedForLater')}>
+                      <Bookmark className="mr-2 h-4 w-4" /> Later: {markedForLaterCount}
+                    </Button>
+                  )}
+                </div>
+              )}
             </CardHeader>
             
-            <ScrollArea className="h-[calc(100vh-26rem)] md:h-[calc(100vh-24rem)]"> {/* Adjusted height for new footer */}
+            <ScrollArea className="h-[calc(100vh-28rem)] md:h-[calc(100vh-26rem)]"> {/* Adjusted height for header content */}
               <CardContent className="p-4 md:p-6">
                 <div className="space-y-6">
                   {activeTest.questions.map((question, index) => {
                     const qState = currentQuestionState(question.id);
                     return (
-                      <Card key={question.id} className={cn("bg-card/50 shadow-sm transition-all", 
-                        qState?.isMarkedForReview && "border-orange-500 ring-2 ring-orange-500/50",
-                        qState?.isMarkedForLater && !qState?.isMarkedForReview && "border-blue-500 ring-2 ring-blue-500/50"
+                      <Card 
+                        key={question.id} 
+                        ref={(el) => questionRefs.current[index] = el}
+                        className={cn("bg-card/50 shadow-sm transition-all", 
+                          qState?.isMarkedForReview && "border-orange-500 ring-2 ring-orange-500/50",
+                          qState?.isMarkedForLater && !qState?.isMarkedForReview && "border-blue-500 ring-2 ring-blue-500/50"
                       )}>
                         <CardHeader className="pb-3 pt-4">
                           <div className="flex justify-between items-center">
