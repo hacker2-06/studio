@@ -10,13 +10,13 @@ import { ServiceWorkerRegistration } from '@/components/layout/ServiceWorkerRegi
 export const metadata: Metadata = {
   title: 'Smartsheet - Custom Tests & Evaluation',
   description: 'Create, take, and evaluate custom tests with Smartsheet.',
-  icons: null, // Explicitly set icons to null
-  // PWA related metadata fields that might be interacting with formatDetection are temporarily removed for diagnosis.
-  // applicationName: 'Smartsheet',
-  // appleWebAppCapable: 'yes',
-  // appleWebAppStatusBarStyle: 'default',
-  // appleWebAppTitle: 'Smartsheet',
-  // mobileWebAppCapable: 'yes',
+  icons: null, // Explicitly set icons to null to avoid favicon.ico.mjs build issues for now
+  // PWA related metadata fields
+  applicationName: 'Smartsheet',
+  appleWebAppCapable: 'yes',
+  appleWebAppStatusBarStyle: 'default', // Or 'black-translucent'
+  appleWebAppTitle: 'Smartsheet',
+  mobileWebAppCapable: 'yes',
 };
 
 export default function RootLayout({
@@ -30,7 +30,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#1A73E8" />
         {/* Add other meta tags for PWA if needed, e.g., Apple-specific icons */}
-        {/* <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" /> */}
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" /> {/* Placeholder path, add your icon */}
       </head>
       <body className={`${inter.variable} ${poppins.variable} antialiased`}>
         <SettingsProvider>
