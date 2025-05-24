@@ -2,7 +2,7 @@
 "use client";
 
 import type { CurrentTestData, Option, Question } from "@/lib/types";
-import { useEffect, useState, useCallback, useRef } from "react"; // Added useRef
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, AlertCircle, TimerIcon, ArrowLeft, Flag, Bookmark, Info } from "lucide-react";
+import { Loader2, AlertCircle, TimerIcon, ArrowLeft, Flag, Bookmark, Info, ListChecks, ClipboardEdit, MousePointerSquare, SendHorizonal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,8 +27,8 @@ export default function TakeTestPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const startTimeRef = useRef<number | null>(null); // To store the actual start time of the test
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null); // To store timer interval ID
+  const startTimeRef = useRef<number | null>(null);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     try {
@@ -57,7 +57,6 @@ export default function TakeTestPage() {
   }, []);
 
   useEffect(() => {
-    // Clear any existing interval when the component unmounts or dependencies change
     return () => {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
@@ -75,12 +74,11 @@ export default function TakeTestPage() {
     const { timerMode, durationMinutes = 0 } = activeTest.config;
 
     if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current); // Clear previous interval if any
+      clearInterval(timerIntervalRef.current);
     }
 
     if (timerMode === 'timer') {
       let timeLeft = durationMinutes * 60;
-      // Adjust timeLeft if resuming a timed test (though not fully supported here, good for future)
       const alreadyElapsed = startTimeRef.current ? Math.floor((Date.now() - startTimeRef.current) / 1000) : 0;
       timeLeft = Math.max(0, durationMinutes * 60 - alreadyElapsed);
       
@@ -92,7 +90,7 @@ export default function TakeTestPage() {
         if (timeLeft <= 0) {
           if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
           toast({ title: "Time's Up!", description: "The test will be submitted automatically.", variant: "default" });
-          // Consider auto-submitting: handleSubmitTest(true); // Pass a flag for auto-submission
+          // Consider auto-submitting: handleSubmitTest(true); 
         }
       }, 1000);
     } else if (timerMode === 'stopwatch') {
@@ -100,12 +98,11 @@ export default function TakeTestPage() {
         const elapsed = startTimeRef.current ? Math.floor((Date.now() - startTimeRef.current) / 1000) : 0;
         setTimeDisplay(formatTime(elapsed));
       };
-      updateStopwatch(); // Initial display
+      updateStopwatch();
       timerIntervalRef.current = setInterval(updateStopwatch, 1000);
     } else {
       setTimeDisplay("No Timer");
     }
-    // Dependencies are refined to only what the timer setup needs
   }, [activeTest?.config.timerMode, activeTest?.config.durationMinutes, showTutorialModal, toast]);
 
 
@@ -145,7 +142,7 @@ export default function TakeTestPage() {
     setIsSubmitting(true);
     
     if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current); // Stop timer/stopwatch
+      clearInterval(timerIntervalRef.current);
     }
 
     const endTime = Date.now();
@@ -154,8 +151,8 @@ export default function TakeTestPage() {
     try {
       const testDataForEvaluation: CurrentTestData = {
         ...activeTest,
-        questions: activeTest.questions, // Ensure questions are the latest state
-        elapsedTimeSeconds, // Add elapsed time
+        questions: activeTest.questions,
+        elapsedTimeSeconds,
       };
       localStorage.setItem(LOCAL_STORAGE_EVALUATION_KEY, JSON.stringify(testDataForEvaluation));
       localStorage.removeItem(LOCAL_STORAGE_TEST_DATA_KEY);
@@ -168,9 +165,8 @@ export default function TakeTestPage() {
         description: "Could not save your answers. Please try submitting again.",
         variant: "destructive",
       });
-      setIsSubmitting(false); // Only set to false on error, success navigates away
+      setIsSubmitting(false);
     }
-    // No setIsSubmitting(false) here on success, as navigation occurs.
   };
 
   if (isLoading) {
@@ -207,13 +203,11 @@ export default function TakeTestPage() {
     return activeTest.questions.find(q => q.id === questionId);
   };
 
-
   return (
     <>
       <Dialog open={showTutorialModal} onOpenChange={(isOpen) => {
           if (!isOpen) {
               setShowTutorialModal(false);
-              // Start timer logic only after modal is closed if it was shown
               if (!startTimeRef.current) {
                   startTimeRef.current = Date.now();
               }
@@ -225,22 +219,34 @@ export default function TakeTestPage() {
               <Info className="mr-3 h-7 w-7 text-primary" /> Test Instructions
             </DialogTitle>
             <DialogDescription className="pt-2 text-base">
-              Welcome to your test! Here’s a quick guide:
+              Welcome to your NeetSheet test! Here’s a quick guide:
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 text-sm">
-            <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
-              <li>Select your answer for each question using the radio buttons (1, 2, 3, 4).</li>
-              <li>Use the <Flag className="inline-block h-4 w-4 mx-1 text-orange-500" /> icon to <span className="font-semibold text-foreground">Mark for Review</span> if you're unsure and want to come back.</li>
-              <li>Use the <Bookmark className="inline-block h-4 w-4 mx-1 text-blue-500" /> icon to <span className="font-semibold text-foreground">Mark for Later</span> for any question you want to revisit.</li>
-              <li>Your test might be timed. Keep an eye on the <span className="font-semibold text-foreground">{activeTest.config.timerMode === 'timer' ? 'timer (countdown)' : activeTest.config.timerMode === 'stopwatch' ? 'stopwatch (count up)' : 'timer display'}</span> at the top.</li>
+            <ul className="list-none space-y-3 pl-1 text-muted-foreground">
+              <li className="flex items-start">
+                <MousePointerSquare className="inline-block h-5 w-5 mr-3 mt-0.5 text-primary shrink-0" />
+                <span>Select your answer for each question using the radio buttons (1, 2, 3, 4).</span>
+              </li>
+              <li className="flex items-start">
+                <Flag className="inline-block h-5 w-5 mr-3 mt-0.5 text-orange-500 shrink-0" />
+                <span>Use this icon to <span className="font-semibold text-foreground">Mark for Review</span> if you're unsure and want to come back.</span>
+              </li>
+              <li className="flex items-start">
+                <Bookmark className="inline-block h-5 w-5 mr-3 mt-0.5 text-blue-500 shrink-0" />
+                <span>Use this icon to <span className="font-semibold text-foreground">Mark for Later</span> for any question you want to revisit.</span>
+              </li>
+              <li className="flex items-start">
+                <TimerIcon className="inline-block h-5 w-5 mr-3 mt-0.5 text-primary shrink-0" />
+                <span>Your test might be timed. Keep an eye on the <span className="font-semibold text-foreground">{activeTest.config.timerMode === 'timer' ? 'timer (countdown)' : activeTest.config.timerMode === 'stopwatch' ? 'stopwatch (count up)' : 'timer display'}</span> at the top.</span>
+              </li>
             </ul>
-            <p className="text-muted-foreground">Good luck!</p>
+            <p className="text-muted-foreground">Good luck with your practice!</p>
           </div>
           <DialogFooter>
             <Button onClick={() => {
                 setShowTutorialModal(false);
-                if (!startTimeRef.current) { // Ensure start time is set if modal is closed quickly
+                if (!startTimeRef.current) { 
                   startTimeRef.current = Date.now();
                 }
             }} className="w-full">Start Test</Button>
@@ -255,7 +261,8 @@ export default function TakeTestPage() {
               <div className="flex justify-between items-start">
                 <div>
                   <CardTitle className="text-2xl font-bold tracking-tight">{activeTest.config.name}</CardTitle>
-                  <CardDescription className="text-md mt-1">
+                  <CardDescription className="text-md mt-1 flex items-center text-muted-foreground">
+                    <ListChecks className="mr-2 h-4 w-4 text-primary" />
                     Total Questions: {activeTest.questions.length}
                   </CardDescription>
                 </div>
@@ -264,8 +271,9 @@ export default function TakeTestPage() {
                         <TimerIcon className="mr-2 h-5 w-5" />
                         {timeDisplay}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                        Marking: <span className="text-success-foreground bg-success/80 px-1 py-0.5 rounded-sm font-medium">+{activeTest.config.markingCorrect}</span> for correct, <span className="text-destructive-foreground bg-destructive/80 px-1 py-0.5 rounded-sm font-medium">{activeTest.config.markingIncorrect}</span> for incorrect.
+                    <p className="text-xs text-muted-foreground flex items-center justify-end">
+                        <ClipboardEdit className="mr-1.5 h-3 w-3" />
+                        Marking: <span className="text-success-foreground bg-success/80 px-1 py-0.5 rounded-sm font-medium ml-1">+{activeTest.config.markingCorrect}</span> / <span className="text-destructive-foreground bg-destructive/80 px-1 py-0.5 rounded-sm font-medium">{activeTest.config.markingIncorrect}</span>
                     </p>
                 </div>
               </div>
@@ -334,7 +342,7 @@ export default function TakeTestPage() {
             
             <CardFooter className="border-t pt-6">
               <Button onClick={handleSubmitTest} className="w-full md:w-auto ml-auto" size="lg" disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SendHorizonal className="mr-2 h-4 w-4" />}
                 Submit Test for Evaluation
               </Button>
             </CardFooter>
