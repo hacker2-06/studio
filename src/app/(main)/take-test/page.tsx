@@ -10,14 +10,14 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Terminal, TimerIcon, CheckSquare, XSquare, AlertCircle } from "lucide-react"; // Added more icons
+import { Loader2, AlertCircle, TimerIcon, ArrowLeft } from "lucide-react";
 
 const LOCAL_STORAGE_TEST_DATA_KEY = 'currentSmartsheetTestData';
+const LOCAL_STORAGE_EVALUATION_KEY = 'testForEvaluation';
 
 export default function TakeTestPage() {
   const [currentTest, setCurrentTest] = useState<CurrentTestData | null>(null);
-  const [userAnswers, setUserAnswers] = useState<Record<string, Option>>({});
+  const [userAnswers, setUserAnswers] = useState<Record<string, Option>>({}); // Stores questionId: selectedOption
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -29,8 +29,11 @@ export default function TakeTestPage() {
         const parsedData: CurrentTestData = JSON.parse(storedData);
         if (parsedData && parsedData.config && parsedData.questions) {
           setCurrentTest(parsedData);
-          // Initialize userAnswers if needed, though default empty is fine.
-          // localStorage.removeItem(LOCAL_STORAGE_TEST_DATA_KEY); // Consider clearing after load
+          // Initialize userAnswers from stored test data if any (e.g., re-attempt scenario later)
+          // For now, start fresh.
+          setUserAnswers({});
+          // Optionally clear the data if it's a one-time use for starting the test
+          // localStorage.removeItem(LOCAL_STORAGE_TEST_DATA_KEY); 
         } else {
           setError("Test data is incomplete. Please create the test again.");
         }
@@ -54,20 +57,24 @@ export default function TakeTestPage() {
 
   const handleSubmitTest = () => {
     if (!currentTest) return;
-    // For now, just log. Later, this will navigate to self-evaluation.
-    console.log("Submitting test with answers:", userAnswers);
-    const testDataWithAnswers = {
+
+    const testDataWithAnswers: CurrentTestData = {
       ...currentTest,
       questions: currentTest.questions.map(q => ({
         ...q,
-        userAnswer: userAnswers[q.id],
+        userAnswer: userAnswers[q.id], // Add the userAnswer to each question object
       })),
     };
-    // Store for evaluation page
-    localStorage.setItem('testForEvaluation', JSON.stringify(testDataWithAnswers));
-    // router.push('/self-evaluate'); // Navigate to self-evaluation page (to be created)
-    alert("Test submitted! (Self-evaluation step to be implemented next). Answers logged to console.");
-    router.push('/create-test'); // Go back for now
+    
+    try {
+      localStorage.setItem(LOCAL_STORAGE_EVALUATION_KEY, JSON.stringify(testDataWithAnswers));
+      localStorage.removeItem(LOCAL_STORAGE_TEST_DATA_KEY); // Clean up the initial test data
+      router.push('/self-evaluate');
+    } catch (e) {
+      console.error("Error saving test for evaluation:", e);
+      setError("Could not save your answers. Please try submitting again.");
+      // Potentially show a toast message here
+    }
   };
 
   if (isLoading) {
@@ -88,7 +95,7 @@ export default function TakeTestPage() {
           <AlertCircle className="h-5 w-5" />
           <AlertTitle>Error Loading Test</AlertTitle>
           <AlertDescription>
-            {error || "Could not load the test details. This might happen if you refreshed the page or navigated here directly."}
+            {error || "Could not load the test details."}
             <br />
             Please go back and create a new test.
           </AlertDescription>
@@ -100,7 +107,6 @@ export default function TakeTestPage() {
     );
   }
 
-  // Timer Display Logic (Placeholder for now)
   const renderTimerInfo = () => {
     const { timerMode, durationMinutes } = currentTest.config;
     let timerText = "No Timer";
@@ -116,7 +122,6 @@ export default function TakeTestPage() {
         </div>
     );
   };
-
 
   return (
     <div className="container mx-auto py-8">
@@ -138,14 +143,13 @@ export default function TakeTestPage() {
           </div>
         </CardHeader>
         
-        <ScrollArea className="h-[calc(100vh-22rem)] md:h-[calc(100vh-20rem)]"> {/* Adjust height as needed */}
+        <ScrollArea className="h-[calc(100vh-22rem)] md:h-[calc(100vh-20rem)]">
           <CardContent className="p-4 md:p-6">
             <div className="space-y-6">
               {currentTest.questions.map((question, index) => (
                 <Card key={question.id} className="bg-card/50 shadow-sm">
                   <CardHeader>
                     <CardTitle className="text-lg font-semibold">{question.text}</CardTitle>
-                     {/* If there's actual question text from AI, it would go here, for OMR it's just "Question X" */}
                   </CardHeader>
                   <CardContent>
                     <RadioGroup
@@ -153,14 +157,14 @@ export default function TakeTestPage() {
                       onValueChange={(value) => handleAnswerChange(question.id, value as Option)}
                       className="grid grid-cols-2 sm:grid-cols-4 gap-3"
                     >
-                      {question.options.map((optionKey) => (
+                      {question.options.map((optionKey) => ( // Options are now '1', '2', '3', '4'
                         <div key={optionKey} className="flex items-center space-x-2">
                           <RadioGroupItem value={optionKey} id={`${question.id}-${optionKey}`} className="peer" />
                           <Label 
                             htmlFor={`${question.id}-${optionKey}`}
                             className="text-base font-medium p-3 border rounded-md flex-1 text-center cursor-pointer peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 hover:bg-muted/50 transition-colors"
                           >
-                            {optionKey}
+                            {optionKey} 
                           </Label>
                         </div>
                       ))}
@@ -174,24 +178,10 @@ export default function TakeTestPage() {
         
         <CardFooter className="border-t pt-6">
           <Button onClick={handleSubmitTest} className="w-full md:w-auto ml-auto" size="lg">
-            Submit Test
+            Submit Test for Evaluation
           </Button>
         </CardFooter>
       </Card>
     </div>
   );
 }
-
-// Helper icons (if not already available globally or you prefer local ones)
-// You can also import from lucide-react directly if preferred
-const ArrowLeft = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>
-  </svg>
-);
-
-const Loader2 = (props: React.SVGProps<SVGSVGElement>) => (
- <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-  </svg>
-);

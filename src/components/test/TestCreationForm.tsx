@@ -26,7 +26,6 @@ import { useToast } from "@/hooks/use-toast";
 import type { TestCreationData, Question, Option, CurrentTestData } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-// import { generateTestQuestions, type GenerateTestQuestionsInput } from "@/ai/flows/generate-test-questions-flow"; // No longer generating content via AI here
 import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
@@ -35,17 +34,12 @@ const formSchema = z.object({
   }).max(100, {
     message: "Test name must not exceed 100 characters.",
   }),
-  // topic: z.string().min(3, { // Topic removed as AI is not generating question content here
-  //   message: "Test topic must be at least 3 characters.",
-  // }).max(100, {
-  //   message: "Test topic must not exceed 100 characters.",
-  // }),
   numberOfQuestions: z.coerce
     .number({ invalid_type_error: "Number of questions must be a number." })
     .int({ message: "Number of questions must be a whole number." })
     .positive({ message: "Number of questions must be positive." })
     .min(1, { message: "At least 1 question is required." })
-    .max(100, { message: "Maximum 100 questions allowed." }), // Increased max slightly
+    .max(100, { message: "Maximum 100 questions allowed." }),
   timerMode: z.enum(["timer", "stopwatch", "none"], {
     required_error: "Timer mode is required.",
   }),
@@ -73,7 +67,7 @@ const formSchema = z.object({
 export type TestCreationFormValues = z.infer<typeof formSchema>;
 
 const LOCAL_STORAGE_TEST_DATA_KEY = 'currentSmartsheetTestData';
-const OPTIONS_KEYS: Option[] = ['A', 'B', 'C', 'D'];
+const OPTIONS_KEYS: Option[] = ['1', '2', '3', '4']; // Changed from A, B, C, D
 
 export function TestCreationForm() {
   const { toast } = useToast();
@@ -84,7 +78,6 @@ export function TestCreationForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      // topic: "", // Topic removed
       numberOfQuestions: 5,
       timerMode: "timer",
       durationMinutes: 10,
@@ -100,7 +93,6 @@ export function TestCreationForm() {
 
     const testConfigData: TestCreationData = {
       name: values.name,
-      // topic: values.topic, // Topic removed
       numberOfQuestions: values.numberOfQuestions,
       timerMode: values.timerMode as 'timer' | 'stopwatch' | 'none',
       durationMinutes: values.timerMode === 'timer' ? values.durationMinutes : undefined,
@@ -108,14 +100,13 @@ export function TestCreationForm() {
       markingIncorrect: values.markingIncorrect,
     };
     
-    // Manually create an array of Question structures
     const generatedQuestions: Question[] = [];
     for (let i = 0; i < values.numberOfQuestions; i++) {
       generatedQuestions.push({
-        id: `q_${i + 1}_${Date.now()}`, // Unique ID for each question
-        text: `Question ${i + 1}`, // Generic text
-        options: OPTIONS_KEYS, // Options will be A, B, C, D
-        // aiGeneratedQuestionText, aiGeneratedOptions, etc. will be undefined
+        id: `q_${i + 1}_${Date.now()}`, 
+        text: `Question ${i + 1}`, 
+        options: OPTIONS_KEYS,
+        // No AI fields needed for OMR
       });
     }
 
@@ -141,9 +132,8 @@ export function TestCreationForm() {
         description: `An error occurred: ${error instanceof Error ? error.message : "Please try again."}`,
         variant: "destructive",
       });
-      setIsProcessing(false); // Only set to false on error if not navigating
+      setIsProcessing(false);
     }
-    // setIsProcessing(false); // Typically, you wouldn't set this if navigation is successful and unmounts the component.
   }
 
   return (
@@ -165,25 +155,6 @@ export function TestCreationForm() {
             </FormItem>
           )}
         />
-
-        {/* Topic Field Removed
-        <FormField
-          control={form.control}
-          name="topic"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Test Topic / Subject</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g., High School Physics, World Capitals" {...field} />
-              </FormControl>
-              <FormDescription>
-                What subject or topic will this test cover?
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        */}
 
         <FormField
           control={form.control}
@@ -287,7 +258,7 @@ export function TestCreationForm() {
           {isProcessing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Preparing Test & Starting...
+              Preparing Test Sheet...
             </>
           ) : (
             "Create OMR Sheet & Start Test"
