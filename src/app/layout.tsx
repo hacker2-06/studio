@@ -5,16 +5,17 @@ import './globals.css';
 import { SettingsProvider } from '@/contexts/SettingsContext';
 import { Toaster } from "@/components/ui/toaster";
 import type { ReactNode } from 'react';
-import { ServiceWorkerRegistration } from '@/components/layout/ServiceWorkerRegistration'; // Import the new component
+import { ServiceWorkerRegistration } from '@/components/layout/ServiceWorkerRegistration';
 
 export const metadata: Metadata = {
   title: 'Smartsheet - Custom Tests & Evaluation',
   description: 'Create, take, and evaluate custom tests with Smartsheet.',
-  icons: null, // Explicitly set icons to null to avoid favicon.ico.mjs build issues for now
-  // PWA related metadata fields
+  // Explicitly set icons to null to avoid favicon.ico.mjs build issues for now
+  // The PWA icons will be primarily driven by manifest.json
+  icons: null, 
   applicationName: 'Smartsheet',
   appleWebAppCapable: 'yes',
-  appleWebAppStatusBarStyle: 'default', // Or 'black-translucent'
+  appleWebAppStatusBarStyle: 'default',
   appleWebAppTitle: 'Smartsheet',
   mobileWebAppCapable: 'yes',
 };
@@ -29,14 +30,14 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#1A73E8" />
-        {/* Add other meta tags for PWA if needed, e.g., Apple-specific icons */}
-        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" /> {/* Placeholder path, add your icon */}
+        {/* Update apple-touch-icon path; ensure you create this PNG from your SVG */}
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180x180.png" />
       </head>
       <body className={`${inter.variable} ${poppins.variable} antialiased`}>
         <SettingsProvider>
           {children}
           <Toaster />
-          <ServiceWorkerRegistration /> {/* Render the client component here */}
+          <ServiceWorkerRegistration />
         </SettingsProvider>
       </body>
     </html>

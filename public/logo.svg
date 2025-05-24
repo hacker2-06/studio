@@ -1,0 +1,35 @@
+<svg class="smartsheet-icon-inline" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+      /* Define the glassmorphism filter */
+      .glass {
+          filter: url(#blurFilter) brightness(1.1);
+          fill: url(#gradientFill);
+          /* Updated stroke color and width for a more visible border */
+          stroke: rgba(0, 0, 0, 0.3); /* Semi-transparent dark grey/black */
+          stroke-width: 1.5; /* Increased stroke width */
+      }
+      /* Style for the internal lines/grid */
+      .internal-lines {
+           stroke: rgba(0, 0, 0, 0.15); /* Subtle dark lines */
+           stroke-width: 0.7;
+           stroke-linecap: round;
+      }
+  </style>
+  <defs>
+      <linearGradient id="gradientFill" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="rgba(14, 165, 233, 0.4)" /> <stop offset="100%" stop-color="rgba(59, 130, 246, 0.4)" /> </linearGradient>
+      <filter id="blurFilter">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
+      </filter>
+  </defs>
+
+  <rect x="5" y="5" width="40" height="40" rx="8" ry="8" class="glass"/>
+
+  <line x1="10" y1="15" x2="40" y2="15" class="internal-lines"/>
+  <line x1="10" y1="25" x2="40" y2="25" class="internal-lines"/>
+  <line x1="10" y1="35" x2="40" y2="35" class="internal-lines"/>
+  <line x1="15" y1="10" x2="15" y2="40" class="internal-lines"/>
+  <line x1="25" y1="10" x2="25" y2="40" class="internal-lines"/>
+  <line x1="35" y1="10" x2="35" y2="40" class="internal-lines"/>
+
+</svg>
