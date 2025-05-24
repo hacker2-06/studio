@@ -23,10 +23,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import type { TestCreationData, AIQuestion } from "@/lib/types";
+import type { TestCreationData, Question, Option, CurrentTestData } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { generateTestQuestions, type GenerateTestQuestionsInput } from "@/ai/flows/generate-test-questions-flow";
+// import { generateTestQuestions, type GenerateTestQuestionsInput } from "@/ai/flows/generate-test-questions-flow"; // No longer generating content via AI here
 import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
@@ -35,17 +35,17 @@ const formSchema = z.object({
   }).max(100, {
     message: "Test name must not exceed 100 characters.",
   }),
-  topic: z.string().min(3, {
-    message: "Test topic must be at least 3 characters.",
-  }).max(100, {
-    message: "Test topic must not exceed 100 characters.",
-  }),
+  // topic: z.string().min(3, { // Topic removed as AI is not generating question content here
+  //   message: "Test topic must be at least 3 characters.",
+  // }).max(100, {
+  //   message: "Test topic must not exceed 100 characters.",
+  // }),
   numberOfQuestions: z.coerce
     .number({ invalid_type_error: "Number of questions must be a number." })
     .int({ message: "Number of questions must be a whole number." })
     .positive({ message: "Number of questions must be positive." })
     .min(1, { message: "At least 1 question is required." })
-    .max(20, { message: "Maximum 20 questions allowed for now." }), // Capped for faster generation initially
+    .max(100, { message: "Maximum 100 questions allowed." }), // Increased max slightly
   timerMode: z.enum(["timer", "stopwatch", "none"], {
     required_error: "Timer mode is required.",
   }),
@@ -73,18 +73,18 @@ const formSchema = z.object({
 export type TestCreationFormValues = z.infer<typeof formSchema>;
 
 const LOCAL_STORAGE_TEST_DATA_KEY = 'currentSmartsheetTestData';
+const OPTIONS_KEYS: Option[] = ['A', 'B', 'C', 'D'];
 
 export function TestCreationForm() {
   const { toast } = useToast();
   const router = useRouter();
-  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
-  // We don't need to store generatedQuestions in state here if we navigate away immediately
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const form = useForm<TestCreationFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      topic: "",
+      // topic: "", // Topic removed
       numberOfQuestions: 5,
       timerMode: "timer",
       durationMinutes: 10,
@@ -96,9 +96,11 @@ export function TestCreationForm() {
   const timerMode = form.watch("timerMode");
 
   async function onSubmit(values: TestCreationFormValues) {
-    const testData: TestCreationData = {
+    setIsProcessing(true);
+
+    const testConfigData: TestCreationData = {
       name: values.name,
-      topic: values.topic,
+      // topic: values.topic, // Topic removed
       numberOfQuestions: values.numberOfQuestions,
       timerMode: values.timerMode as 'timer' | 'stopwatch' | 'none',
       durationMinutes: values.timerMode === 'timer' ? values.durationMinutes : undefined,
@@ -106,61 +108,42 @@ export function TestCreationForm() {
       markingIncorrect: values.markingIncorrect,
     };
     
-    // Toast for configuration is less relevant if we navigate away quickly.
-    // Consider if this toast is still needed or should be shown on the next page.
-    /*
-    toast({
-      title: "Test Configured",
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(testData, null, 2)}</code>
-        </pre>
-      ),
-    });
-    */
+    // Manually create an array of Question structures
+    const generatedQuestions: Question[] = [];
+    for (let i = 0; i < values.numberOfQuestions; i++) {
+      generatedQuestions.push({
+        id: `q_${i + 1}_${Date.now()}`, // Unique ID for each question
+        text: `Question ${i + 1}`, // Generic text
+        options: OPTIONS_KEYS, // Options will be A, B, C, D
+        // aiGeneratedQuestionText, aiGeneratedOptions, etc. will be undefined
+      });
+    }
 
-    setIsGeneratingQuestions(true);
+    const fullTestData: CurrentTestData = {
+      config: testConfigData,
+      questions: generatedQuestions,
+    };
+
     try {
-      const aiInput: GenerateTestQuestionsInput = {
-        topic: values.topic,
-        numberOfQuestions: values.numberOfQuestions,
-      };
-      const result = await generateTestQuestions(aiInput);
-      
-      if (!result || !result.questions || result.questions.length === 0) {
-        toast({
-          title: "Question Generation Failed",
-          description: "The AI did not return any questions. Please try a different topic or number of questions.",
-          variant: "destructive",
-        });
-        setIsGeneratingQuestions(false);
-        return;
-      }
+      localStorage.setItem(LOCAL_STORAGE_TEST_DATA_KEY, JSON.stringify(fullTestData));
       
       toast({
-        title: "AI Questions Generated!",
-        description: `Successfully generated ${result.questions.length} questions. Starting test...`,
+        title: "Test Sheet Created!",
+        description: `OMR sheet for "${values.name}" with ${values.numberOfQuestions} questions is ready. Starting test...`,
         variant: "default",
       });
-
-      const fullTestData = {
-        config: testData,
-        questions: result.questions,
-      };
-
-      localStorage.setItem(LOCAL_STORAGE_TEST_DATA_KEY, JSON.stringify(fullTestData));
       router.push('/take-test');
 
     } catch (error) {
-      console.error("Error generating questions or navigating:", error);
+      console.error("Error preparing test or navigating:", error);
       toast({
         title: "Error During Test Setup",
         description: `An error occurred: ${error instanceof Error ? error.message : "Please try again."}`,
         variant: "destructive",
       });
-    } finally {
-      // setIsGeneratingQuestions(false); // Not strictly necessary if navigating away
+      setIsProcessing(false); // Only set to false on error if not navigating
     }
+    // setIsProcessing(false); // Typically, you wouldn't set this if navigation is successful and unmounts the component.
   }
 
   return (
@@ -173,7 +156,7 @@ export function TestCreationForm() {
             <FormItem>
               <FormLabel>Test Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Algebra Basics Quiz" {...field} />
+                <Input placeholder="e.g., Midterm Exam Practice" {...field} />
               </FormControl>
               <FormDescription>
                 Choose a descriptive name for your test.
@@ -183,6 +166,7 @@ export function TestCreationForm() {
           )}
         />
 
+        {/* Topic Field Removed
         <FormField
           control={form.control}
           name="topic"
@@ -199,6 +183,7 @@ export function TestCreationForm() {
             </FormItem>
           )}
         />
+        */}
 
         <FormField
           control={form.control}
@@ -210,7 +195,7 @@ export function TestCreationForm() {
                 <Input type="number" placeholder="e.g., 10" {...field} />
               </FormControl>
               <FormDescription>
-                How many questions will this test have? (Max 20 for now)
+                How many questions will this test have?
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -298,14 +283,14 @@ export function TestCreationForm() {
             />
         </div>
         
-        <Button type="submit" className="w-full md:w-auto" disabled={isGeneratingQuestions}>
-          {isGeneratingQuestions ? (
+        <Button type="submit" className="w-full md:w-auto" disabled={isProcessing}>
+          {isProcessing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating & Starting Test...
+              Preparing Test & Starting...
             </>
           ) : (
-            "Configure & Generate Questions to Start Test"
+            "Create OMR Sheet & Start Test"
           )}
         </Button>
       </form>
