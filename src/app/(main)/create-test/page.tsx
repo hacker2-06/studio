@@ -1,16 +1,19 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { TestCreationForm } from "@/components/test/TestCreationForm";
 
 export default function CreateTestPage() {
   return (
     <div className="container mx-auto py-8">
-      <Card>
+      <Card className="shadow-xl">
         <CardHeader>
-          <CardTitle>Create New Test</CardTitle>
-          <CardDescription>Configure your new test by providing a name, number of questions, and other settings.</CardDescription>
+          <CardTitle className="text-2xl font-bold tracking-tight">Create New Test</CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Configure your new test by providing a name, number of questions, timer settings, and marking rules.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <p>Test creation form will be here.</p>
-          {/* TODO: Implement TestCreationForm component */}
+          <TestCreationForm />
         </CardContent>
       </Card>
     </div>
