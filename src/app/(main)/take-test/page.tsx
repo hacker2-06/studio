@@ -7,11 +7,29 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription, 
+  DialogFooter 
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, AlertCircle, TimerIcon, ArrowLeft, Flag, Bookmark, Info, ListChecks, ClipboardEdit, MousePointerClick, SendHorizonal } from "lucide-react"; // Changed MousePointerSquare to MousePointerClick
+import { Loader2, AlertCircle, TimerIcon, ArrowLeft, Flag, Bookmark, Info, ListChecks, ClipboardEdit, MousePointerClick, SendHorizonal, LogOut } from "lucide-react"; 
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -25,10 +43,12 @@ export default function TakeTestPage() {
   const [showTutorialModal, setShowTutorialModal] = useState(true);
   const [timeDisplay, setTimeDisplay] = useState("00:00");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCancelConfirmDialog, setShowCancelConfirmDialog] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const startTimeRef = useRef<number | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isTestActiveRef = useRef(false); // To track if test is ongoing for beforeunload
 
   useEffect(() => {
     try {
@@ -42,28 +62,25 @@ export default function TakeTestPage() {
             isMarkedForLater: q.isMarkedForLater ?? false,
           }));
           setActiveTest({ ...parsedData, questions: questionsWithFlags });
+          isTestActiveRef.current = true;
         } else {
           setError("Test data is incomplete. Please create the test again.");
+          isTestActiveRef.current = false;
         }
       } else {
         setError("No test data found. Please create a new test.");
+        isTestActiveRef.current = false;
       }
     } catch (e) {
       console.error("Failed to load test data from localStorage:", e);
       setError("Failed to load test data. Please try creating the test again.");
+      isTestActiveRef.current = false;
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-      }
-    };
-  }, []);
-  
+  // Timer/Stopwatch effect
   useEffect(() => {
     if (!activeTest || showTutorialModal) return;
 
@@ -103,8 +120,41 @@ export default function TakeTestPage() {
     } else {
       setTimeDisplay("No Timer");
     }
+     // Only re-run if these specific config props change, or tutorial visibility changes
   }, [activeTest?.config.timerMode, activeTest?.config.durationMinutes, showTutorialModal, toast]);
 
+
+  // beforeunload warning effect
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (isTestActiveRef.current) {
+        event.preventDefault();
+        // Standard way to show browser's generic confirmation message
+        event.returnValue = "Are you sure you want to leave? Your test progress will be lost.";
+        return event.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []); // Empty dependency array, runs once on mount and cleans up on unmount
+
+
+  // Cleanup timer on component unmount or when test is no longer active
+  useEffect(() => {
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+      // Also mark test as inactive when component unmounts, for beforeunload
+      // This is tricky if navigating away, as state might not be fully processed.
+      // isTestActiveRef.current should be set to false mainly upon explicit submission/cancellation.
+    };
+  }, []);
+  
 
   const formatTime = (totalSeconds: number): string => {
     if (totalSeconds < 0) totalSeconds = 0;
@@ -140,6 +190,7 @@ export default function TakeTestPage() {
   const handleSubmitTest = () => {
     if (!activeTest) return;
     setIsSubmitting(true);
+    isTestActiveRef.current = false; // Test is no longer active
     
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
@@ -166,7 +217,22 @@ export default function TakeTestPage() {
         variant: "destructive",
       });
       setIsSubmitting(false);
+      isTestActiveRef.current = true; // Re-activate if submission failed
     }
+  };
+
+  const handleCancelTestConfirmed = () => {
+    isTestActiveRef.current = false; // Test is no longer active
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+    }
+    localStorage.removeItem(LOCAL_STORAGE_TEST_DATA_KEY);
+    toast({
+      title: "Test Cancelled",
+      description: "Your current test progress has been cleared.",
+    });
+    router.push('/'); // Navigate to home or create-test page
+    setShowCancelConfirmDialog(false);
   };
 
   if (isLoading) {
@@ -254,6 +320,23 @@ export default function TakeTestPage() {
         </DialogContent>
       </Dialog>
 
+      <AlertDialog open={showCancelConfirmDialog} onOpenChange={setShowCancelConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Test?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this test? Your current progress will be lost and cannot be recovered.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Taking Test</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancelTestConfirmed} className={buttonVariants({ variant: "destructive" })}>
+              Yes, Cancel Test
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {!showTutorialModal && (
         <div className="container mx-auto py-8">
           <Card className="shadow-xl w-full max-w-3xl mx-auto">
@@ -279,7 +362,7 @@ export default function TakeTestPage() {
               </div>
             </CardHeader>
             
-            <ScrollArea className="h-[calc(100vh-24rem)] md:h-[calc(100vh-22rem)]">
+            <ScrollArea className="h-[calc(100vh-26rem)] md:h-[calc(100vh-24rem)]"> {/* Adjusted height for new footer */}
               <CardContent className="p-4 md:p-6">
                 <div className="space-y-6">
                   {activeTest.questions.map((question, index) => {
@@ -340,8 +423,17 @@ export default function TakeTestPage() {
               </CardContent>
             </ScrollArea>
             
-            <CardFooter className="border-t pt-6">
-              <Button onClick={handleSubmitTest} className="w-full md:w-auto ml-auto" size="lg" disabled={isSubmitting}>
+            <CardFooter className="border-t pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowCancelConfirmDialog(true)} 
+                className="w-full sm:w-auto"
+                disabled={isSubmitting}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Cancel Test
+              </Button>
+              <Button onClick={handleSubmitTest} className="w-full sm:w-auto" size="lg" disabled={isSubmitting}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SendHorizonal className="mr-2 h-4 w-4" />}
                 Submit Test for Evaluation
               </Button>
@@ -353,3 +445,5 @@ export default function TakeTestPage() {
   );
 }
 
+
+    
