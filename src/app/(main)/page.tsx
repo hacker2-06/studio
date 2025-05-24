@@ -1,12 +1,32 @@
 
+"use client"; // Keep this if it was there, or add if needed for dynamic imports with client-side focus
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Greeting } from "@/components/dashboard/Greeting";
 import { MotivationalQuote } from "@/components/dashboard/MotivationalQuote";
-import { RecentTestHistory } from "@/components/dashboard/RecentTestHistory";
-import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
 import { FilePlus2 } from "lucide-react";
+import dynamic from 'next/dynamic';
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Dynamically import PerformanceChart with SSR turned off
+const PerformanceChart = dynamic(
+  () => import('@/components/dashboard/PerformanceChart').then(mod => mod.PerformanceChart),
+  { 
+    ssr: false,
+    loading: () => <Skeleton className="h-[320px] w-full rounded-lg" /> // Placeholder for chart
+  }
+);
+
+// Dynamically import RecentTestHistory with SSR turned off
+const RecentTestHistory = dynamic(
+  () => import('@/components/dashboard/RecentTestHistory').then(mod => mod.RecentTestHistory),
+  { 
+    ssr: false,
+    loading: () => <Skeleton className="h-[300px] w-full rounded-lg" /> // Placeholder for history
+  }
+);
 
 export default function DashboardPage() {
   return (
