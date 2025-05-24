@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, AlertCircle, TimerIcon, ArrowLeft, Flag, Bookmark, Info, ListChecks, ClipboardEdit, MousePointerSquare, SendHorizonal } from "lucide-react";
+import { Loader2, AlertCircle, TimerIcon, ArrowLeft, Flag, Bookmark, Info, ListChecks, ClipboardEdit, MousePointerClick, SendHorizonal } from "lucide-react"; // Changed MousePointerSquare to MousePointerClick
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -225,7 +225,7 @@ export default function TakeTestPage() {
           <div className="grid gap-4 py-4 text-sm">
             <ul className="list-none space-y-3 pl-1 text-muted-foreground">
               <li className="flex items-start">
-                <MousePointerSquare className="inline-block h-5 w-5 mr-3 mt-0.5 text-primary shrink-0" />
+                <MousePointerClick className="inline-block h-5 w-5 mr-3 mt-0.5 text-primary shrink-0" /> 
                 <span>Select your answer for each question using the radio buttons (1, 2, 3, 4).</span>
               </li>
               <li className="flex items-start">
@@ -352,3 +352,4 @@ export default function TakeTestPage() {
     </>
   );
 }
+
