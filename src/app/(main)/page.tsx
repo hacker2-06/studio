@@ -46,7 +46,7 @@ export default function DashboardPage() {
       
       <Card className="shadow-lg border-primary border-2">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold tracking-tight text-primary">Ready for a New NEET Challenge?</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight text-primary">Ready for a New Challenge?</CardTitle>
           <CardDescription>
             Create a new OMR sheet, start your practice test, and ace your NEET preparation.
           </CardDescription>
@@ -63,3 +63,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

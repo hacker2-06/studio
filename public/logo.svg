@@ -1,35 +1,79 @@
-<svg class="smartsheet-icon-inline" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <style>
-      /* Define the glassmorphism filter */
-      .glass {
-          filter: url(#blurFilter) brightness(1.1);
-          fill: url(#gradientFill);
-          /* Updated stroke color and width for a more visible border */
-          stroke: rgba(0, 0, 0, 0.3); /* Semi-transparent dark grey/black */
-          stroke-width: 1.5; /* Increased stroke width */
-      }
-      /* Style for the internal lines/grid */
-      .internal-lines {
-           stroke: rgba(0, 0, 0, 0.15); /* Subtle dark lines */
-           stroke-width: 0.7;
-           stroke-linecap: round;
-      }
-  </style>
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-      <linearGradient id="gradientFill" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="rgba(14, 165, 233, 0.4)" /> <stop offset="100%" stop-color="rgba(59, 130, 246, 0.4)" /> </linearGradient>
-      <filter id="blurFilter">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
-      </filter>
+    <linearGradient id="sheetGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#EDE7F6;stop-opacity:1" /> <stop offset="100%" style="stop-color:#D1C4E9;stop-opacity:1" /> </linearGradient>
+    <linearGradient id="checkmarkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" /> <stop offset="100%" style="stop-color:#81C784;stop-opacity:1" /> </linearGradient>
+    <linearGradient id="heartbeatGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#F06292;stop-opacity:1" /> <stop offset="100%" style="stop-color:#E91E63;stop-opacity:1" /> </linearGradient>
+
+    <filter id="shadow" x="0" y="0" width="200" height="200">
+      <feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.1"/>
+    </filter>
   </defs>
 
-  <rect x="5" y="5" width="40" height="40" rx="8" ry="8" class="glass"/>
+  <rect x="20" y="20" width="160" height="160" rx="30" fill="url(#sheetGradient)" stroke="#E0E0E0" stroke-width="1" filter="url(#shadow)">
+    <animateTransform
+      attributeName="transform"
+      attributeType="XML"
+      type="scale"
+      values="1;1.02;1"
+      dur="3s"
+      repeatCount="indefinite"
+      additive="sum"
+      keyTimes="0;0.5;1"
+      calcMode="spline"
+      keySplines="0.4 0 0.2 1;0.4 0 0.2 1"
+      />
+  </rect>
 
-  <line x1="10" y1="15" x2="40" y2="15" class="internal-lines"/>
-  <line x1="10" y1="25" x2="40" y2="25" class="internal-lines"/>
-  <line x1="10" y1="35" x2="40" y2="35" class="internal-lines"/>
-  <line x1="15" y1="10" x2="15" y2="40" class="internal-lines"/>
-  <line x1="25" y1="10" x2="25" y2="40" class="internal-lines"/>
-  <line x1="35" y1="10" x2="35" y2="40" class="internal-lines"/>
+  <circle cx="60" cy="70" r="15" fill="#FFFFFF" stroke="#9575CD" stroke-width="2"/>
+  <circle cx="100" cy="70" r="15" fill="#FFFFFF" stroke="#9575CD" stroke-width="2"/>
+  <circle cx="140" cy="70" r="15" fill="#FFFFFF" stroke="#9575CD" stroke-width="2"/>
+
+  <circle cx="60" cy="110" r="15" fill="#FFFFFF" stroke="#9575CD" stroke-width="2"/>
+  <circle cx="100" cy="110" r="15" fill="#FFFFFF" stroke="#9575CD" stroke-width="2"/>
+  <circle cx="140" cy="110" r="15" fill="#FFFFFF" stroke="#9575CD" stroke-width="2"/>
+
+  <circle cx="100" cy="110" r="15" fill="url(#checkmarkGradient)" stroke="none"/>
+  <path id="checkmarkPath" d="M92 110 L98 116 L108 104" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <animate
+      attributeName="stroke-dasharray"
+      from="0 50"
+      to="50 0"
+      dur="1s"
+      begin="0.5s"
+      fill="freeze"
+      repeatCount="1"
+      />
+    <animate
+      attributeName="opacity"
+      values="0;1"
+      dur="1s"
+      begin="0.5s"
+      fill="freeze"
+      repeatCount="1"
+      />
+  </path>
+
+  <path d="M60 150 C70 140, 80 160, 90 150 S110 140, 120 160 S130 140, 140 150" stroke="url(#heartbeatGradient)" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <animate
+      attributeName="stroke-width"
+      values="4;6;4"
+      dur="1.5s"
+      repeatCount="indefinite"
+      keyTimes="0;0.5;1"
+      calcMode="spline"
+      keySplines="0.4 0 0.2 1;0.4 0 0.2 1"
+      />
+    <animate
+      attributeName="stroke"
+      values="url(#heartbeatGradient);#F44336;url(#heartbeatGradient)" dur="3s"
+      repeatCount="indefinite"
+      keyTimes="0;0.5;1"
+      calcMode="spline"
+      keySplines="0.4 0 0.2 1;0.4 0 0.2 1"
+      />
+  </path>
 
 </svg>
