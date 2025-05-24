@@ -1,78 +1,111 @@
+
 "use client";
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
 type Theme = "light" | "dark" | "system";
 
-// Define other settings interfaces as needed
-// interface ScoringRules { correct: number; incorrect: number; }
-// interface TimerPreferences { defaultMode: 'timer' | 'stopwatch' | 'none'; defaultDuration?: number; }
+export interface ScoringRules {
+  correct: number;
+  incorrect: number;
+}
+
+export type TimerMode = 'timer' | 'stopwatch' | 'none';
+
+export interface TimerPreferences {
+  defaultMode: TimerMode;
+  defaultDurationMinutes?: number;
+}
 
 interface Settings {
   theme: Theme;
-  // scoringRules: ScoringRules;
-  // timerPreferences: TimerPreferences;
+  scoringRules: ScoringRules;
+  timerPreferences: TimerPreferences;
 }
 
 interface SettingsContextType extends Settings {
   setTheme: (theme: Theme) => void;
-  // setScoringRules: (rules: ScoringRules) => void;
-  // setTimerPreferences: (prefs: TimerPreferences) => void;
+  setScoringRules: (rules: ScoringRules) => void;
+  setTimerPreferences: (prefs: TimerPreferences) => void;
 }
 
 const defaultSettings: Settings = {
   theme: "system",
-  // scoringRules: { correct: 4, incorrect: -1 },
-  // timerPreferences: { defaultMode: 'timer', defaultDuration: 600 },
+  scoringRules: { correct: 4, incorrect: -1 },
+  timerPreferences: { defaultMode: 'timer', defaultDurationMinutes: 10 },
 };
+
+const SETTINGS_STORAGE_KEY = "neetSheetAppSettings";
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(defaultSettings.theme);
-  // Add other settings states here
+  const [scoringRules, setScoringRulesState] = useState<ScoringRules>(defaultSettings.scoringRules);
+  const [timerPreferences, setTimerPreferencesState] = useState<TimerPreferences>(defaultSettings.timerPreferences);
 
-  // Effect for initializing theme from localStorage
+  // Effect for initializing all settings from localStorage
   useEffect(() => {
-    const storedTheme = localStorage.getItem("theme") as Theme | null;
-    if (storedTheme) {
-      setThemeState(storedTheme);
+    const storedSettingsRaw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (storedSettingsRaw) {
+      try {
+        const storedSettings = JSON.parse(storedSettingsRaw);
+        if (storedSettings.theme) setThemeState(storedSettings.theme);
+        if (storedSettings.scoringRules) setScoringRulesState(storedSettings.scoringRules);
+        if (storedSettings.timerPreferences) setTimerPreferencesState(storedSettings.timerPreferences);
+      } catch (e) {
+        console.error("Failed to parse settings from localStorage", e);
+        // Fallback to default settings if parsing fails
+        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(defaultSettings));
+      }
     } else {
-      setThemeState(defaultSettings.theme);
+      // If no settings in localStorage, save defaults
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(defaultSettings));
     }
   }, []);
 
-  // Effect for applying theme to HTML element and saving to localStorage
+  const saveSettings = useCallback((newSettings: Partial<Settings>) => {
+    const currentSettings = { theme, scoringRules, timerPreferences, ...newSettings };
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings));
+  }, [theme, scoringRules, timerPreferences]);
+
+
+  // Effect for applying theme to HTML element
   useEffect(() => {
     const root = window.document.documentElement;
+    const effectiveTheme = theme === "system"
+      ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+      : theme;
     
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-      root.classList.remove("light", "dark");
-      root.classList.add(systemTheme);
-      // For system, we don't override localStorage unless user explicitly chooses light/dark
-    } else {
-      root.classList.remove("light", "dark");
-      root.classList.add(theme);
-      localStorage.setItem("theme", theme);
-    }
+    root.classList.remove("light", "dark");
+    root.classList.add(effectiveTheme);
   }, [theme]);
 
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
-    if (newTheme !== "system") {
-      localStorage.setItem("theme", newTheme);
-    } else {
-      // When switching to system, remove the explicit theme from localStorage
-      // so it can truly follow system preference on next load.
-      localStorage.removeItem("theme");
-    }
-  }, []);
+    saveSettings({ theme: newTheme });
+  }, [saveSettings]);
 
-  // Add other setter functions here
+  const setScoringRules = useCallback((newRules: ScoringRules) => {
+    setScoringRulesState(newRules);
+    saveSettings({ scoringRules: newRules });
+  }, [saveSettings]);
+
+  const setTimerPreferences = useCallback((newPrefs: TimerPreferences) => {
+    setTimerPreferencesState(newPrefs);
+    saveSettings({ timerPreferences: newPrefs });
+  }, [saveSettings]);
+
 
   return (
-    <SettingsContext.Provider value={{ theme, setTheme /*, other settings and setters */ }}>
+    <SettingsContext.Provider value={{ 
+      theme, 
+      setTheme, 
+      scoringRules, 
+      setScoringRules,
+      timerPreferences,
+      setTimerPreferences
+    }}>
       {children}
     </SettingsContext.Provider>
   );

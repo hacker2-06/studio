@@ -1,32 +1,37 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ThemeToggle } from "@/components/ThemeToggle"; // Example of using a setting component
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { ScoringRulesForm } from "@/components/settings/ScoringRulesForm";
+import { TimerPreferencesForm } from "@/components/settings/TimerPreferencesForm";
 
 export default function SettingsPage() {
   return (
-    <div className="container mx-auto py-8">
-      <Card>
+    <div className="container mx-auto py-8 space-y-8">
+      <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle>Settings</CardTitle>
-          <CardDescription>Manage your application preferences and settings.</CardDescription>
+          <CardTitle className="text-2xl font-bold tracking-tight">Application Settings</CardTitle>
+          <CardDescription>Manage your application preferences and default test settings.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <h3 className="text-lg font-medium mb-2">Theme</h3>
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <span>Appearance</span>
-              <ThemeToggle />
-            </div>
-          </div>
-          <div>
-            <h3 className="text-lg font-medium mb-2">Default Scoring Rules</h3>
-            <p>Scoring rule settings will be here.</p>
-            {/* TODO: Implement ScoringRulesForm component */}
-          </div>
-          <div>
-            <h3 className="text-lg font-medium mb-2">Timer Preferences</h3>
-            <p>Timer preference settings will be here.</p>
-            {/* TODO: Implement TimerPreferencesForm component */}
-          </div>
+        <CardContent className="space-y-10 p-6">
+          
+          <section>
+            <h2 className="text-lg font-semibold mb-3 text-primary">Theme</h2>
+            <Card className="shadow-md">
+              <CardContent className="p-4 flex items-center justify-between">
+                <span className="text-card-foreground">Appearance Mode</span>
+                <ThemeToggle />
+              </CardContent>
+            </Card>
+          </section>
+
+          <section>
+            <ScoringRulesForm />
+          </section>
+
+          <section>
+            <TimerPreferencesForm />
+          </section>
+
         </CardContent>
       </Card>
     </div>

@@ -25,8 +25,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { TestCreationData, Question, Option, CurrentTestData } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react"; // Added useEffect
 import { Loader2 } from "lucide-react";
+import { useSettings } from "@/contexts/SettingsContext"; // Import useSettings
 
 const formSchema = z.object({
   name: z.string().min(3, {
@@ -39,7 +40,7 @@ const formSchema = z.object({
     .int({ message: "Number of questions must be a whole number." })
     .positive({ message: "Number of questions must be positive." })
     .min(1, { message: "At least 1 question is required." })
-    .max(100, { message: "Maximum 100 questions allowed." }),
+    .max(100, { message: "Maximum 100 questions allowed." }), // OMR typically 100-200, adjust as needed
   timerMode: z.enum(["timer", "stopwatch", "none"], {
     required_error: "Timer mode is required.",
   }),
@@ -73,20 +74,41 @@ export function TestCreationForm() {
   const { toast } = useToast();
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
+  const { scoringRules, timerPreferences } = useSettings(); // Get settings from context
 
   const form = useForm<TestCreationFormValues>({
     resolver: zodResolver(formSchema),
+    // Initialize with context values or fallback defaults if context is not ready
     defaultValues: {
       name: "",
-      numberOfQuestions: 5,
-      timerMode: "timer",
-      durationMinutes: 10,
-      markingCorrect: 4,
-      markingIncorrect: -1,
+      numberOfQuestions: 50, // Default for OMR might be higher
+      timerMode: timerPreferences?.defaultMode || "timer",
+      durationMinutes: timerPreferences?.defaultDurationMinutes || 30,
+      markingCorrect: scoringRules?.correct || 4,
+      markingIncorrect: scoringRules?.incorrect || -1,
     },
   });
 
-  const timerMode = form.watch("timerMode");
+  // Effect to update form defaults if settings from context change after initial load
+  useEffect(() => {
+    // Only reset if the form hasn't been touched by the user yet for these fields
+    // This is a basic check; more sophisticated "isDirty" checks could be used.
+    if (scoringRules && !form.formState.dirtyFields.markingCorrect && !form.formState.dirtyFields.markingIncorrect) {
+      form.setValue("markingCorrect", scoringRules.correct, { shouldValidate: false });
+      form.setValue("markingIncorrect", scoringRules.incorrect, { shouldValidate: false });
+    }
+    if (timerPreferences && !form.formState.dirtyFields.timerMode && !form.formState.dirtyFields.durationMinutes) {
+      form.setValue("timerMode", timerPreferences.defaultMode, { shouldValidate: false });
+      if (timerPreferences.defaultMode === 'timer') {
+        form.setValue("durationMinutes", timerPreferences.defaultDurationMinutes, { shouldValidate: false });
+      } else {
+        form.setValue("durationMinutes", undefined, { shouldValidate: false });
+      }
+    }
+  }, [scoringRules, timerPreferences, form]);
+
+
+  const watchedTimerMode = form.watch("timerMode");
 
   async function onSubmit(values: TestCreationFormValues) {
     setIsProcessing(true);
@@ -98,23 +120,23 @@ export function TestCreationForm() {
       durationMinutes: values.timerMode === 'timer' ? values.durationMinutes : undefined,
       markingCorrect: values.markingCorrect,
       markingIncorrect: values.markingIncorrect,
-      // topic: values.topic, // topic removed as per user request for OMR
     };
     
-    // For OMR, we generate generic question structures
     const generatedQuestions: Question[] = [];
     for (let i = 0; i < values.numberOfQuestions; i++) {
       generatedQuestions.push({
-        id: `q_${i + 1}_${Date.now()}`, 
-        text: `Question ${i + 1}`, // Generic question text
-        options: OPTIONS_KEYS, // Generic options ['1', '2', '3', '4']
-        // aiGeneratedQuestionText, aiGeneratedOptions, etc., are not populated here for OMR
+        id: `q_${i + 1}_${Date.now()}_${Math.random().toString(36).substring(7)}`, // More unique ID
+        text: `Question ${i + 1}`, 
+        options: OPTIONS_KEYS, 
+        isMarkedForReview: false,
+        isMarkedForLater: false,
       });
     }
 
     const fullTestData: CurrentTestData = {
       config: testConfigData,
       questions: generatedQuestions,
+      // elapsedTimeSeconds will be set when test is submitted
     };
 
     try {
@@ -134,7 +156,8 @@ export function TestCreationForm() {
         description: `An error occurred: ${error instanceof Error ? error.message : "Please try again."}`,
         variant: "destructive",
       });
-      setIsProcessing(false);
+    } finally {
+      setIsProcessing(false); // Ensure this is always reset
     }
   }
 
@@ -148,10 +171,10 @@ export function TestCreationForm() {
             <FormItem>
               <FormLabel>Test Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Midterm Exam Practice" {...field} />
+                <Input placeholder="e.g., Physics Mock Test 1" {...field} />
               </FormControl>
               <FormDescription>
-                Choose a descriptive name for your test.
+                Choose a descriptive name for your OMR sheet.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -165,10 +188,10 @@ export function TestCreationForm() {
             <FormItem>
               <FormLabel>Number of Questions</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="e.g., 10" {...field} />
+                <Input type="number" placeholder="e.g., 100" {...field} />
               </FormControl>
               <FormDescription>
-                How many questions will this test have?
+                How many questions will this OMR sheet have?
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -183,8 +206,8 @@ export function TestCreationForm() {
               <FormLabel>Timer Mode</FormLabel>
               <Select
                 onValueChange={field.onChange}
-                defaultValue={field.value}
-                suppressHydrationWarning={true} 
+                value={field.value} // Ensure value is controlled
+                suppressHydrationWarning 
               >
                 <FormControl>
                   <SelectTrigger>
@@ -205,7 +228,7 @@ export function TestCreationForm() {
           )}
         />
 
-        {timerMode === "timer" && (
+        {watchedTimerMode === "timer" && (
           <FormField
             control={form.control}
             name="durationMinutes"
@@ -213,7 +236,7 @@ export function TestCreationForm() {
               <FormItem>
                 <FormLabel>Duration (minutes)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 60" {...field} value={field.value ?? ''} />
+                  <Input type="number" placeholder="e.g., 180" {...field} value={field.value ?? ''} />
                 </FormControl>
                 <FormDescription>
                   Set the time limit in minutes if using timer mode.
@@ -264,7 +287,7 @@ export function TestCreationForm() {
           {isProcessing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Preparing Test Sheet...
+              Preparing OMR Sheet...
             </>
           ) : (
             "Create OMR Sheet & Start Test"
