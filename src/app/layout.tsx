@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   appleWebAppCapable: 'yes',
   appleWebAppStatusBarStyle: 'default',
   appleWebAppTitle: 'Smartsheet',
-  formatDetection: { telephone: false }, // Ensure this is an object
+  // formatDetection: { telephone: false }, // Removed this line
   mobileWebAppCapable: 'yes',
   // themeColor: '#1A73E8', // Can be in manifest or here
 };
