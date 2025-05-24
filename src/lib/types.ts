@@ -1,4 +1,5 @@
-export type Option = '1' | '2' | '3' | '4'; // Changed from A, B, C, D
+
+export type Option = '1' | '2' | '3' | '4';
 
 export interface Question {
   id: string;
@@ -6,6 +7,8 @@ export interface Question {
   options: Option[]; // For OMR, this will be ['1', '2', '3', '4'].
   userAnswer?: Option; // The answer selected by the user
   isCorrect?: boolean; // Determined during self-evaluation
+  isMarkedForReview?: boolean; // New: For user to mark a question for review
+  isMarkedForLater?: boolean;  // New: For user to mark a question to revisit later
   // Fields that might come from AI generation (optional if not using AI for content)
   aiGeneratedQuestionText?: string;
   aiGeneratedOptions?: { [key in Option]?: string }; // Text for options
@@ -26,19 +29,19 @@ export interface TestCreationData {
 // Structure for data stored in localStorage while test is active or being evaluated
 export interface CurrentTestData {
   config: TestCreationData;
-  questions: Question[]; // Includes user answers after submission from TakeTestPage
+  questions: Question[]; // Includes user answers and review/later flags after submission from TakeTestPage
 }
 
 // For AI Generated Question content (if used)
 export interface AIQuestion { // This is the schema for AI output
   questionText: string;
-  options: { // Text for options A,B,C,D (or 1,2,3,4 if AI is adapted)
-    A: string; // Keeping A,B,C,D here as it's AI output schema, can be mapped
+  options: {
+    A: string;
     B: string;
     C: string;
     D: string;
   };
-  correctAnswer: 'A' | 'B' | 'C' | 'D'; // Key of the correct option from AI
+  correctAnswer: 'A' | 'B' | 'C' | 'D';
   explanation?: string;
 }
 
@@ -47,10 +50,10 @@ export interface AIQuestion { // This is the schema for AI output
 export interface Test {
   id: string; // UUID
   name: string; // From TestCreationData
-  config: TestCreationData; // Contains marking scheme, timer settings, original num questions
-  questions: Question[]; // Each question with id, text, options, userAnswer, and isCorrect
-  status: 'evaluated'; // Only evaluated tests are stored in history for now
-  createdAt: string; // ISO date string of test creation (from form submission)
+  config: TestCreationData;
+  questions: Question[]; // Each question with id, text, options, userAnswer, isCorrect, and review/later flags
+  status: 'evaluated';
+  createdAt: string; // ISO date string of test creation
   submittedAt: string; // ISO date string when user submitted in TakeTestPage
   evaluatedAt: string; // ISO date string when user completed self-evaluation
   scoreDetails: {
@@ -63,9 +66,6 @@ export interface Test {
   elapsedTimeSeconds?: number; // If timer/stopwatch was used
 }
 
-// The AI output for GenerateTestQuestionsOutput in the flow still uses A,B,C,D internally for options/correctAnswer.
-// This will be mapped to 1,2,3,4 if/when AI-generated questions are used in the OMR context.
-// For now, OMR only uses generic question numbers and 1,2,3,4 options.
 export type AIGeneratedTestQuestionsOutput = {
   questions: AIQuestion[];
 };
