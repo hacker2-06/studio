@@ -27,7 +27,7 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion"; // Import Accordion
+} from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import type { TestCreationData, Question, Option, CurrentTestData } from "@/lib/types";
 import { useRouter } from "next/navigation";
@@ -222,6 +222,12 @@ export function TestCreationForm() {
               </Select>
               <FormDescription>
                 Choose how time will be managed for this test.
+                {timerPreferences && (
+                  <>
+                    {' '}Default from settings: {timerPreferences.defaultMode}
+                    {timerPreferences.defaultMode === 'timer' && timerPreferences.defaultDurationMinutes && ` (${timerPreferences.defaultDurationMinutes} mins)`}.
+                  </>
+                )}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -263,9 +269,11 @@ export function TestCreationForm() {
                       <FormControl>
                         <Input type="number" placeholder="e.g., 4" {...field} />
                       </FormControl>
-                      <FormDescription>
-                        Default: {scoringRules.correct}
-                      </FormDescription>
+                      {scoringRules && (
+                        <FormDescription>
+                          Default: {scoringRules.correct}
+                        </FormDescription>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -280,9 +288,11 @@ export function TestCreationForm() {
                       <FormControl>
                         <Input type="number" placeholder="e.g., -1 or 0" {...field} />
                       </FormControl>
-                      <FormDescription>
-                        Default: {scoringRules.incorrect}
-                      </FormDescription>
+                       {scoringRules && (
+                        <FormDescription>
+                          Default: {scoringRules.incorrect}
+                        </FormDescription>
+                       )}
                       <FormMessage />
                     </FormItem>
                   )}
