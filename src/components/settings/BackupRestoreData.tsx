@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react"; // Added useRef
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UploadCloud, DownloadCloud, AlertTriangle } from "lucide-react";
+import { UploadCloud, DownloadCloud, AlertTriangle, FileUp } from "lucide-react"; // Added FileUp
 import type { Test } from "@/lib/types";
 
 const LOCAL_STORAGE_HISTORY_PREFIX = 'smartsheet_test_history_';
@@ -14,6 +14,7 @@ const LOCAL_STORAGE_HISTORY_PREFIX = 'smartsheet_test_history_';
 export function BackupRestoreData() {
   const { toast } = useToast();
   const [isRestoring, setIsRestoring] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null); // Ref for the file input
 
   const handleBackup = () => {
     try {
@@ -63,14 +64,10 @@ export function BackupRestoreData() {
     }
   };
 
-  const handleRestore = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRestoreInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
-      toast({
-        title: "No File Selected",
-        description: "Please select a backup file to restore.",
-        variant: "destructive",
-      });
+      // No toast here, as user might have cancelled file dialog
       return;
     }
 
@@ -85,7 +82,7 @@ export function BackupRestoreData() {
         const restoredHistory: Test[] = JSON.parse(content);
 
         if (!Array.isArray(restoredHistory) || !restoredHistory.every(item => item.id && item.config && item.questions && item.scoreDetails)) {
-          throw new Error("Invalid backup file format.");
+          throw new Error("Invalid backup file format. Ensure it's a valid NeetSheet backup.");
         }
         
         // Clear existing history
@@ -105,7 +102,7 @@ export function BackupRestoreData() {
 
         toast({
           title: "Restore Successful",
-          description: `Successfully restored ${restoredHistory.length} test(s). Please refresh the history page to see changes.`,
+          description: `Successfully restored ${restoredHistory.length} test(s). Refresh the history page to see changes.`,
         });
       } catch (error) {
         console.error("Restore failed:", error);
@@ -116,13 +113,17 @@ export function BackupRestoreData() {
         });
       } finally {
         setIsRestoring(false);
-         // Reset file input
-        if (event.target) {
-            event.target.value = "";
+        // Reset file input value to allow selecting the same file again if needed
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
         }
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleRestoreButtonClick = () => {
+    fileInputRef.current?.click(); // Programmatically click the hidden file input
   };
 
   return (
@@ -156,18 +157,38 @@ export function BackupRestoreData() {
           <p className="text-sm text-muted-foreground">
             Upload a previously downloaded backup file (.json) to restore your history.
           </p>
+          {/* Hidden file input */}
           <Input
             id="restoreFile"
             type="file"
             accept=".json"
-            onChange={handleRestore}
+            onChange={handleRestoreInputChange}
             disabled={isRestoring}
-            className="w-full sm:w-auto file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+            ref={fileInputRef}
+            className="hidden" // Hide the default input
           />
+          {/* Custom button to trigger file input */}
+          <Button 
+            onClick={handleRestoreButtonClick} 
+            variant="outline" 
+            className="w-full sm:w-auto"
+            disabled={isRestoring}
+          >
+            {isRestoring ? (
+              <>
+                <UploadCloud className="mr-2 h-5 w-5 animate-pulse" />
+                Restoring...
+              </>
+            ) : (
+              <>
+                <FileUp className="mr-2 h-5 w-5" />
+                Choose File to Restore
+              </>
+            )}
+          </Button>
           {isRestoring && (
             <p className="text-sm text-primary flex items-center">
-              <UploadCloud className="mr-2 h-4 w-4 animate-pulse" />
-              Restoring...
+              Processing file... Please wait.
             </p>
           )}
         </div>
@@ -175,3 +196,4 @@ export function BackupRestoreData() {
     </Card>
   );
 }
+
