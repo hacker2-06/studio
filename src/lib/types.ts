@@ -30,6 +30,7 @@ export interface TestCreationData {
 export interface CurrentTestData {
   config: TestCreationData;
   questions: Question[]; // Includes user answers and review/later flags after submission from TakeTestPage
+  elapsedTimeSeconds?: number; // Added to track time taken
 }
 
 // For AI Generated Question content (if used)
@@ -61,9 +62,9 @@ export interface Test {
     correctCount: number;
     incorrectCount: number;
     unattemptedCount: number;
-    percentage: number;
+    percentage: number; // This will now represent accuracy (correct/attempted)
   };
-  elapsedTimeSeconds?: number; // If timer/stopwatch was used
+  elapsedTimeSeconds?: number; // Added to store time taken for the test
 }
 
 export type AIGeneratedTestQuestionsOutput = {

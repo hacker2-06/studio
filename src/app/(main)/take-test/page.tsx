@@ -2,7 +2,7 @@
 "use client";
 
 import type { CurrentTestData, Option, Question } from "@/lib/types";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react"; // Added useRef
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -27,6 +27,8 @@ export default function TakeTestPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const startTimeRef = useRef<number | null>(null); // To store the actual start time of the test
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null); // To store timer interval ID
 
   useEffect(() => {
     try {
@@ -34,7 +36,6 @@ export default function TakeTestPage() {
       if (storedData) {
         const parsedData: CurrentTestData = JSON.parse(storedData);
         if (parsedData && parsedData.config && parsedData.questions) {
-          // Ensure questions have default review/later flags if not present
           const questionsWithFlags = parsedData.questions.map(q => ({
             ...q,
             isMarkedForReview: q.isMarkedForReview ?? false,
@@ -56,37 +57,57 @@ export default function TakeTestPage() {
   }, []);
 
   useEffect(() => {
+    // Clear any existing interval when the component unmounts or dependencies change
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, []);
+  
+  useEffect(() => {
     if (!activeTest || showTutorialModal) return;
 
+    if (!startTimeRef.current) {
+      startTimeRef.current = Date.now();
+    }
+
     const { timerMode, durationMinutes = 0 } = activeTest.config;
-    let intervalId: NodeJS.Timeout;
+
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current); // Clear previous interval if any
+    }
 
     if (timerMode === 'timer') {
       let timeLeft = durationMinutes * 60;
+      // Adjust timeLeft if resuming a timed test (though not fully supported here, good for future)
+      const alreadyElapsed = startTimeRef.current ? Math.floor((Date.now() - startTimeRef.current) / 1000) : 0;
+      timeLeft = Math.max(0, durationMinutes * 60 - alreadyElapsed);
+      
       setTimeDisplay(formatTime(timeLeft));
-      intervalId = setInterval(() => {
+
+      timerIntervalRef.current = setInterval(() => {
         timeLeft--;
         setTimeDisplay(formatTime(timeLeft));
         if (timeLeft <= 0) {
-          clearInterval(intervalId);
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
           toast({ title: "Time's Up!", description: "The test will be submitted automatically.", variant: "default" });
-          // Consider auto-submitting: handleSubmitTest();
-          // For now, user can still submit manually or timer just stops.
+          // Consider auto-submitting: handleSubmitTest(true); // Pass a flag for auto-submission
         }
       }, 1000);
     } else if (timerMode === 'stopwatch') {
-      let elapsedTime = 0;
-      setTimeDisplay(formatTime(elapsedTime));
-      intervalId = setInterval(() => {
-        elapsedTime++;
-        setTimeDisplay(formatTime(elapsedTime));
-      }, 1000);
+      const updateStopwatch = () => {
+        const elapsed = startTimeRef.current ? Math.floor((Date.now() - startTimeRef.current) / 1000) : 0;
+        setTimeDisplay(formatTime(elapsed));
+      };
+      updateStopwatch(); // Initial display
+      timerIntervalRef.current = setInterval(updateStopwatch, 1000);
     } else {
       setTimeDisplay("No Timer");
     }
+    // Dependencies are refined to only what the timer setup needs
+  }, [activeTest?.config.timerMode, activeTest?.config.durationMinutes, showTutorialModal, toast]);
 
-    return () => clearInterval(intervalId);
-  }, [activeTest, showTutorialModal, toast]);
 
   const formatTime = (totalSeconds: number): string => {
     if (totalSeconds < 0) totalSeconds = 0;
@@ -95,7 +116,7 @@ export default function TakeTestPage() {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   };
 
-  const handleAnswerChange = (questionId: string, selectedOption: Option) => {
+  const handleAnswerChange = useCallback((questionId: string, selectedOption: Option) => {
     setActiveTest(prevTest => {
       if (!prevTest) return null;
       return {
@@ -105,9 +126,9 @@ export default function TakeTestPage() {
         ),
       };
     });
-  };
+  }, []);
 
-  const toggleQuestionFlag = (questionId: string, flagType: 'isMarkedForReview' | 'isMarkedForLater') => {
+  const toggleQuestionFlag = useCallback((questionId: string, flagType: 'isMarkedForReview' | 'isMarkedForLater') => {
     setActiveTest(prevTest => {
       if (!prevTest) return null;
       return {
@@ -117,15 +138,26 @@ export default function TakeTestPage() {
         ),
       };
     });
-  };
+  }, []);
 
   const handleSubmitTest = () => {
     if (!activeTest) return;
     setIsSubmitting(true);
     
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current); // Stop timer/stopwatch
+    }
+
+    const endTime = Date.now();
+    const elapsedTimeSeconds = startTimeRef.current ? Math.floor((endTime - startTimeRef.current) / 1000) : 0;
+
     try {
-      // activeTest already contains all updated answers and flags
-      localStorage.setItem(LOCAL_STORAGE_EVALUATION_KEY, JSON.stringify(activeTest));
+      const testDataForEvaluation: CurrentTestData = {
+        ...activeTest,
+        questions: activeTest.questions, // Ensure questions are the latest state
+        elapsedTimeSeconds, // Add elapsed time
+      };
+      localStorage.setItem(LOCAL_STORAGE_EVALUATION_KEY, JSON.stringify(testDataForEvaluation));
       localStorage.removeItem(LOCAL_STORAGE_TEST_DATA_KEY);
       router.push('/self-evaluate');
     } catch (e) {
@@ -136,9 +168,9 @@ export default function TakeTestPage() {
         description: "Could not save your answers. Please try submitting again.",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false); // Only set to false on error, success navigates away
     }
+    // No setIsSubmitting(false) here on success, as navigation occurs.
   };
 
   if (isLoading) {
@@ -178,7 +210,15 @@ export default function TakeTestPage() {
 
   return (
     <>
-      <Dialog open={showTutorialModal} onOpenChange={(isOpen) => !isOpen && setShowTutorialModal(false)}>
+      <Dialog open={showTutorialModal} onOpenChange={(isOpen) => {
+          if (!isOpen) {
+              setShowTutorialModal(false);
+              // Start timer logic only after modal is closed if it was shown
+              if (!startTimeRef.current) {
+                  startTimeRef.current = Date.now();
+              }
+          }
+      }}>
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
             <DialogTitle className="flex items-center text-2xl">
@@ -198,7 +238,12 @@ export default function TakeTestPage() {
             <p className="text-muted-foreground">Good luck!</p>
           </div>
           <DialogFooter>
-            <Button onClick={() => setShowTutorialModal(false)} className="w-full">Start Test</Button>
+            <Button onClick={() => {
+                setShowTutorialModal(false);
+                if (!startTimeRef.current) { // Ensure start time is set if modal is closed quickly
+                  startTimeRef.current = Date.now();
+                }
+            }} className="w-full">Start Test</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -299,4 +344,3 @@ export default function TakeTestPage() {
     </>
   );
 }
-

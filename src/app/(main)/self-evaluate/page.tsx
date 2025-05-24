@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, AlertCircle, CheckCircle2, XCircle, HelpCircle, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils"; // Added missing import
+import { cn } from "@/lib/utils"; 
 
 const LOCAL_STORAGE_EVALUATION_KEY = 'testForEvaluation';
 const LOCAL_STORAGE_HISTORY_PREFIX = 'smartsheet_test_history_';
@@ -32,9 +32,7 @@ export default function SelfEvaluatePage() {
       if (storedData) {
         const parsedData: CurrentTestData = JSON.parse(storedData);
         if (parsedData && parsedData.config && parsedData.questions) {
-          setTestData(parsedData);
-          // Initialize evaluatedQuestions with the questions from the test,
-          // isCorrect will be updated by the user.
+          setTestData(parsedData); // This now includes elapsedTimeSeconds if available
           setEvaluatedQuestions(parsedData.questions.map(q => ({ ...q, isCorrect: undefined })));
         } else {
           setError("Evaluation data is incomplete. Please try taking the test again.");
@@ -86,26 +84,26 @@ export default function SelfEvaluatePage() {
     });
 
     const totalAttempted = correctCount + incorrectCount;
-    const percentage = totalAttempted > 0 ? (correctCount / totalAttempted) * 100 : 0;
+    const accuracyPercentage = totalAttempted > 0 ? (correctCount / totalAttempted) * 100 : 0;
     const testId = uuidv4();
     
     const finalEvaluatedTest: EvaluatedTest = {
       id: testId,
       name: testData.config.name,
       config: testData.config,
-      questions: evaluatedQuestions, // These now have userAnswer and isCorrect
+      questions: evaluatedQuestions, 
       status: 'evaluated',
-      createdAt: new Date().toISOString(), // Placeholder, ideally copied from test creation time
-      submittedAt: new Date().toISOString(), // Placeholder, ideally actual submission time
+      createdAt: new Date().toISOString(), // Placeholder
+      submittedAt: new Date().toISOString(), // Placeholder
       evaluatedAt: new Date().toISOString(),
       scoreDetails: {
         score,
         correctCount,
         incorrectCount,
         unattemptedCount,
-        percentage,
+        percentage: accuracyPercentage, // This field now stores accuracy (correct/attempted)
       },
-      // elapsedTimeSeconds: testData.elapsedTimeSeconds, // if tracked
+      elapsedTimeSeconds: testData.elapsedTimeSeconds, // Pass along elapsedTimeSeconds
     };
 
     try {
@@ -185,7 +183,7 @@ export default function SelfEvaluatePage() {
                     )}
                   </div>
                   
-                  {question.userAnswer && ( // Only show marking buttons if answered
+                  {question.userAnswer && ( 
                     <div className="flex gap-2 mt-3">
                       <Button 
                         size="sm" 

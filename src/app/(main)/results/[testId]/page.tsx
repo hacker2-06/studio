@@ -7,8 +7,8 @@ import type { Test as EvaluatedTest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ArrowLeft, BarChart3, CheckCircle2, XCircle, HelpCircle, PieChartIcon } from 'lucide-react';
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, Bar, XAxis, YAxis, CartesianGrid, BarChart as RechartsBarChart } from 'recharts';
+import { ArrowLeft, BarChart3, CheckCircle2, XCircle, HelpCircle, PieChartIcon, Clock } from 'lucide-react'; // Added Clock
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart"
 import type { ChartConfig } from "@/components/ui/chart"
 
@@ -16,9 +16,9 @@ import type { ChartConfig } from "@/components/ui/chart"
 const LOCAL_STORAGE_HISTORY_PREFIX = 'smartsheet_test_history_';
 
 const COLORS = {
-  correct: 'hsl(var(--success))', // Green
-  incorrect: 'hsl(var(--destructive))', // Red
-  unattempted: 'hsl(var(--muted))', // Gray
+  correct: 'hsl(var(--success))', 
+  incorrect: 'hsl(var(--destructive))', 
+  unattempted: 'hsl(var(--muted))', 
 };
 
 const chartConfig: ChartConfig = {
@@ -39,6 +39,12 @@ const chartConfig: ChartConfig = {
   },
 } satisfies ChartConfig;
 
+const formatElapsedTime = (totalSeconds?: number): string => {
+  if (totalSeconds === undefined || totalSeconds < 0) return "N/A";
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+};
 
 export default function ResultsPage() {
   const params = useParams();
@@ -89,13 +95,17 @@ export default function ResultsPage() {
     );
   }
 
-  const { name, config, questions, scoreDetails, evaluatedAt } = testResult;
+  const { name, config, questions, scoreDetails, evaluatedAt, elapsedTimeSeconds } = testResult;
+  
   const chartData = [
     { name: 'Correct', value: scoreDetails.correctCount, fill: COLORS.correct },
     { name: 'Incorrect', value: scoreDetails.incorrectCount, fill: COLORS.incorrect },
     { name: 'Unattempted', value: scoreDetails.unattemptedCount, fill: COLORS.unattempted },
-  ];
+  ].filter(item => item.value > 0); // Filter out zero values for cleaner chart
 
+  const maxPossibleScore = config.numberOfQuestions * config.markingCorrect;
+  const overallPercentage = maxPossibleScore > 0 ? (scoreDetails.score / maxPossibleScore) * 100 : 0;
+  // scoreDetails.percentage already holds accuracy (correct/attempted)
 
   return (
     <div className="container mx-auto py-8">
@@ -105,24 +115,29 @@ export default function ResultsPage() {
           <CardDescription>
             Evaluated on: {new Date(evaluatedAt).toLocaleString()}
             <br />
-            Marking Scheme: +{config.markingCorrect} for correct, {config.markingIncorrect} for incorrect. Total Questions: {questions.length}.
+            Marking: +{config.markingCorrect} for correct, {config.markingIncorrect} for incorrect. Total Questions: {questions.length}.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-            {/* Score Summary Section */}
             <div className="space-y-4">
               <h3 className="text-xl font-semibold mb-2">Score Summary</h3>
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-lg">
                 <p>Final Score:</p><p className="font-bold text-primary">{scoreDetails.score}</p>
-                <p>Percentage:</p><p className="font-bold">{scoreDetails.percentage.toFixed(2)}%</p>
+                <p>Overall Percentage:</p><p className="font-bold">{overallPercentage.toFixed(2)}%</p>
+                <p>Accuracy (Attempted):</p><p className="font-bold">{scoreDetails.percentage.toFixed(2)}%</p>
+                {elapsedTimeSeconds !== undefined && (
+                  <>
+                    <p className="flex items-center"><Clock className="mr-2 h-5 w-5 text-muted-foreground" />Time Taken:</p>
+                    <p className="font-bold">{formatElapsedTime(elapsedTimeSeconds)}</p>
+                  </>
+                )}
                 <p className="text-success flex items-center"><CheckCircle2 className="mr-2" />Correct:</p><p className="font-bold text-success">{scoreDetails.correctCount}</p>
                 <p className="text-destructive flex items-center"><XCircle className="mr-2" />Incorrect:</p><p className="font-bold text-destructive">{scoreDetails.incorrectCount}</p>
                 <p className="text-muted-foreground flex items-center"><HelpCircle className="mr-2" />Unattempted:</p><p className="font-bold text-muted-foreground">{scoreDetails.unattemptedCount}</p>
               </div>
             </div>
 
-            {/* Chart Section */}
             <div className="h-[250px] md:h-[300px]">
                 <ChartContainer config={chartConfig} className="w-full h-full">
                   <ResponsiveContainer width="100%" height="100%">
