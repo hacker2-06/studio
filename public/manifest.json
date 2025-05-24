@@ -1,0 +1,26 @@
+
+{
+  "name": "Smartsheet - Custom Tests & Evaluation",
+  "short_name": "Smartsheet",
+  "description": "Create, take, and evaluate custom tests with Smartsheet.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#1A73E8",
+  "icons": [
+    {
+      "src": "https://placehold.co/192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable",
+      "data-ai-hint": "app logo"
+    },
+    {
+      "src": "https://placehold.co/512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable",
+      "data-ai-hint": "app logo"
+    }
+  ]
+}
