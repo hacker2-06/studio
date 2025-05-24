@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FilePlus2, History, SettingsIcon, type LucideIcon } from 'lucide-react';
+import { HomeIcon, FilePlus2, History, SettingsIcon, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -14,6 +14,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  { href: '/', label: 'Home', icon: HomeIcon },
   { href: '/create-test', label: 'Create Test', icon: FilePlus2 },
   { href: '/history', label: 'Test History', icon: History },
   { href: '/settings', label: 'Settings', icon: SettingsIcon },
@@ -25,24 +26,27 @@ export function BottomTabBar() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-card shadow-sm">
       {navItems.map((item) => {
-        const isActive = pathname.startsWith(item.href);
+        const isActive = pathname === item.href; // Exact match for home, create-test. For history, startsWith might be better if it has sub-routes.
+        const isPartiallyActive = item.href !== '/' && pathname.startsWith(item.href); // For history/settings and potential future sub-routes
+        const effectiveIsActive = item.href === '/' ? isActive : (isActive || isPartiallyActive);
+
         return (
           <Link href={item.href} key={item.href} legacyBehavior passHref>
             <a
               className={cn(
                 "flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 ease-in-out h-full w-full",
-                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                effectiveIsActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
-              aria-current={isActive ? "page" : undefined}
+              aria-current={effectiveIsActive ? "page" : undefined}
             >
               <motion.div
-                animate={{ scale: isActive ? 1.1 : 1 }}
+                animate={{ scale: effectiveIsActive ? 1.1 : 1 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
               >
                 <item.icon className="h-6 w-6" />
               </motion.div>
               <AnimatePresence>
-                {isActive && (
+                {effectiveIsActive && (
                   <motion.span
                     initial={{ opacity: 0, y: 5, height: 0 }}
                     animate={{ opacity: 1, y: 0, height: 'auto' }}

@@ -1,5 +1,7 @@
+
 import { redirect } from 'next/navigation';
 
 export default function HomePage() {
-  redirect('/create-test');
+  // Redirect to the main app dashboard page within the (main) layout
+  redirect('/');
 }
