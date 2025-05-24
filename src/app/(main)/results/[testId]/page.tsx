@@ -179,11 +179,11 @@ export default function ResultsPage() {
           </div>
 
         </CardContent>
-        <CardFooter className="border-t pt-6 flex justify-between">
-          <Button variant="outline" onClick={() => router.push('/history')}>
+        <CardFooter className="border-t pt-6 flex flex-col sm:flex-row sm:justify-between gap-3">
+          <Button variant="outline" onClick={() => router.push('/history')} className="w-full sm:w-auto">
             <BarChart3 className="mr-2 h-4 w-4" /> View All History
           </Button>
-          <Button onClick={() => router.push('/create-test')}>
+          <Button onClick={() => router.push('/create-test')} className="w-full sm:w-auto">
             <ArrowLeft className="mr-2 h-4 w-4" /> Create Another Test
           </Button>
         </CardFooter>
