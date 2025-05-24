@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, AlertCircle, CheckCircle2, XCircle, HelpCircle, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils"; // Added missing import
 
 const LOCAL_STORAGE_EVALUATION_KEY = 'testForEvaluation';
 const LOCAL_STORAGE_HISTORY_PREFIX = 'smartsheet_test_history_';
