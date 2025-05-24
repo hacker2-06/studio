@@ -72,11 +72,13 @@ const formSchema = z.object({
 
 export type TestCreationFormValues = z.infer<typeof formSchema>;
 
+const LOCAL_STORAGE_TEST_DATA_KEY = 'currentSmartsheetTestData';
+
 export function TestCreationForm() {
   const { toast } = useToast();
   const router = useRouter();
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
-  const [generatedQuestions, setGeneratedQuestions] = useState<AIQuestion[] | null>(null);
+  // We don't need to store generatedQuestions in state here if we navigate away immediately
 
   const form = useForm<TestCreationFormValues>({
     resolver: zodResolver(formSchema),
@@ -94,8 +96,6 @@ export function TestCreationForm() {
   const timerMode = form.watch("timerMode");
 
   async function onSubmit(values: TestCreationFormValues) {
-    setGeneratedQuestions(null); // Clear previous questions
-
     const testData: TestCreationData = {
       name: values.name,
       topic: values.topic,
@@ -106,6 +106,9 @@ export function TestCreationForm() {
       markingIncorrect: values.markingIncorrect,
     };
     
+    // Toast for configuration is less relevant if we navigate away quickly.
+    // Consider if this toast is still needed or should be shown on the next page.
+    /*
     toast({
       title: "Test Configured",
       description: (
@@ -114,6 +117,7 @@ export function TestCreationForm() {
         </pre>
       ),
     });
+    */
 
     setIsGeneratingQuestions(true);
     try {
@@ -122,23 +126,40 @@ export function TestCreationForm() {
         numberOfQuestions: values.numberOfQuestions,
       };
       const result = await generateTestQuestions(aiInput);
-      setGeneratedQuestions(result.questions);
+      
+      if (!result || !result.questions || result.questions.length === 0) {
+        toast({
+          title: "Question Generation Failed",
+          description: "The AI did not return any questions. Please try a different topic or number of questions.",
+          variant: "destructive",
+        });
+        setIsGeneratingQuestions(false);
+        return;
+      }
+      
       toast({
         title: "AI Questions Generated!",
-        description: `Successfully generated ${result.questions.length} questions for the topic: ${values.topic}. Check console for details.`,
+        description: `Successfully generated ${result.questions.length} questions. Starting test...`,
         variant: "default",
       });
-      console.log("Generated Questions:", result.questions);
-      // TODO: Store or display these questions appropriately
+
+      const fullTestData = {
+        config: testData,
+        questions: result.questions,
+      };
+
+      localStorage.setItem(LOCAL_STORAGE_TEST_DATA_KEY, JSON.stringify(fullTestData));
+      router.push('/take-test');
+
     } catch (error) {
-      console.error("Error generating questions:", error);
+      console.error("Error generating questions or navigating:", error);
       toast({
-        title: "Error Generating Questions",
-        description: "Failed to generate questions using AI. Please try again.",
+        title: "Error During Test Setup",
+        description: `An error occurred: ${error instanceof Error ? error.message : "Please try again."}`,
         variant: "destructive",
       });
     } finally {
-      setIsGeneratingQuestions(false);
+      // setIsGeneratingQuestions(false); // Not strictly necessary if navigating away
     }
   }
 
@@ -281,14 +302,13 @@ export function TestCreationForm() {
           {isGeneratingQuestions ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating Questions...
+              Generating & Starting Test...
             </>
           ) : (
-            "Configure & Generate Questions"
+            "Configure & Generate Questions to Start Test"
           )}
         </Button>
       </form>
-      {/* TODO: Display generated questions here if needed */}
     </Form>
   );
 }
