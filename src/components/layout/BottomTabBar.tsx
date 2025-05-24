@@ -32,6 +32,7 @@ export function BottomTabBar() {
 
   const activeItemIndex = navItems.findIndex(item => {
     const isActive = pathname === item.href;
+    // For nested routes, also consider the parent active (e.g., /results/xyz should keep History tab active)
     const isPartiallyActive = item.href !== '/' && pathname.startsWith(item.href);
     return item.href === '/' ? isActive : (isActive || isPartiallyActive);
   });
