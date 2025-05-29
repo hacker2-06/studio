@@ -65,7 +65,7 @@ export default function OttPage() {
         allowFullScreen
         onLoad={handleLoad}
         onError={handleError}
-        sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-presentation allow-same-origin allow-scripts allow-top-navigation allow-top-navigation-by-user-activation" // Adjust sandbox as needed, be cautious
+        sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-presentation allow-same-origin allow-scripts" // Removed allow-top-navigation and allow-top-navigation-by-user-activation
       />
     </div>
   );
